@@ -14,13 +14,12 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* ОТКЛЮЧАЕМ СТРОГИЕ ПРОВЕРКИ */
+    /* Отключаем строгость, чтобы ваш старый код работал */
     "strict": false,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["."]
 }
