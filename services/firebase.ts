@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set } from "firebase/database";
 import { LiveEvent } from "../types";
 
-// Ваш конфиг Firebase
+// Ваш конфиг (я вернул его из истории)
 const firebaseConfig = {
   apiKey: "AIzaSyC-vmOaMUz_fBFjltcxp6RyNvyMmAmdqJ0",
   authDomain: "maybeu-live.firebaseapp.com",
@@ -17,14 +17,25 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-export const subscribeToGameState = (callback: (data: any) => void) => {
-  onValue(ref(db, 'gameState'), (s) => callback(s.val()));
-};
+// Возвращаем Класс, как было в вашем оригинальном коде
+export class FirebaseService {
+  
+  static subscribeToGameState(callback: (data: any) => void) {
+    const starCountRef = ref(db, 'gameState');
+    onValue(starCountRef, (snapshot) => {
+      const data = snapshot.val();
+      callback(data);
+    });
+  }
 
-export const updateGameState = (event: LiveEvent | null) => {
-  set(ref(db, 'gameState'), { activeEvent: event, timestamp: Date.now() });
-};
+  static updateGameState(event: LiveEvent | null) {
+    set(ref(db, 'gameState'), {
+      activeEvent: event,
+      timestamp: Date.now()
+    });
+  }
 
-export const resetGame = () => {
-  set(ref(db, 'gameState'), null);
-};
+  static async resetGame() {
+    await set(ref(db, 'gameState'), null);
+  }
+}
