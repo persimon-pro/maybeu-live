@@ -1,0 +1,8 @@
+{
+  "name": "Maybeu Live: MC Command Center",
+  "description": "Комплексная платформа для ведущих мероприятий: интерактивные викторины, сенсорные игры и управление базой клиентов с помощью ИИ.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
