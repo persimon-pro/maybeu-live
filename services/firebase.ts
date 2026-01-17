@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set } from "firebase/database";
 import { LiveEvent } from "../types";
 
-// ВАШИ НАСТРОЙКИ (Я их уже исправил и вставил)
+// Ваш конфиг Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyC-vmOaMUz_fBFjltcxp6RyNvyMmAmdqJ0",
   authDomain: "maybeu-live.firebaseapp.com",
@@ -14,28 +14,17 @@ const firebaseConfig = {
   measurementId: "G-1BC95R85WM"
 };
 
-// Инициализация
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Функция 1: Слушать изменения (для всех)
 export const subscribeToGameState = (callback: (data: any) => void) => {
-  const starCountRef = ref(db, 'gameState');
-  onValue(starCountRef, (snapshot) => {
-    const data = snapshot.val();
-    callback(data);
-  });
+  onValue(ref(db, 'gameState'), (s) => callback(s.val()));
 };
 
-// Функция 2: Отправить изменения (для Ведущего)
 export const updateGameState = (event: LiveEvent | null) => {
-  set(ref(db, 'gameState'), {
-    activeEvent: event,
-    timestamp: Date.now()
-  });
+  set(ref(db, 'gameState'), { activeEvent: event, timestamp: Date.now() });
 };
 
-// Функция 3: Сброс (Выход)
 export const resetGame = () => {
   set(ref(db, 'gameState'), null);
 };
