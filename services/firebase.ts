@@ -16,28 +16,31 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Вспомогательная функция: находит callback среди аргументов
+// Помощник для поиска функции обратного вызова
 const findCallback = (args: any[]) => args.find(arg => typeof arg === 'function');
 
 export class FirebaseService {
   
   // --- STATE ---
-  // Принимаем arg1 и ...args, чтобы "проглотить" любые варианты вызова
+  // Принимаем activeEvent как any, чтобы код не падал, если придет строка
+  static updateGameState(activeEvent: any, ...args: any[]) {
+    // Если пришел объект - сохраняем как activeEvent
+    // Если пришла строка (ID) - можно сохранить ее или игнорировать, 
+    // но главное - не дать приложению упасть.
+    // Для совместимости сохраняем то, что пришло.
+    set(ref(db, 'gameState'), { activeEvent, timestamp: Date.now() });
+  }
+
   static subscribeToGameState(arg1: any, ...args: any[]) {
     const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
     if (callback) {
       return onValue(ref(db, 'gameState'), (snapshot) => callback(snapshot.val()));
     }
-    return () => {}; // Пустая отписка, если callback не найден
+    return () => {};
   }
 
   static onGameStateChange(arg1: any, ...args: any[]) {
     return this.subscribeToGameState(arg1, ...args);
-  }
-
-  // Принимаем ...args, чтобы игнорировать лишние параметры
-  static updateGameState(event: LiveEvent | null, ...args: any[]) {
-    set(ref(db, 'gameState'), { activeEvent: event, timestamp: Date.now() });
   }
 
   static async resetGame(...args: any[]) {
@@ -50,7 +53,6 @@ export class FirebaseService {
 
   // --- GUESTS ---
   static registerGuest(...args: any[]) {
-    // Логика: если первый аргумент объект - берем из него, иначе считаем аргументы по порядку
     let guestId, name;
     if (typeof args[0] === 'object') {
        guestId = args[0].id;
@@ -116,7 +118,6 @@ export class FirebaseService {
   }
 
   static addGuestImage(...args: any[]) {
-    // Пытаемся понять, что нам передали
     const arg1 = args[0];
     const payload = typeof arg1 === 'object' ? arg1 : { guestId: arg1, imageUrl: args[1] };
     push(ref(db, 'guestImages'), payload);
