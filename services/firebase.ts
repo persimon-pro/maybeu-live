@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, push, update, remove } from "firebase/database";
-import { LiveEvent } from "../types";
 
+// ВАЖНО: Ваши рабочие ключи
 const firebaseConfig = {
   apiKey: "AIzaSyC-vmOaMUz_fBFjltcxp6RyNvyMmAmdqJ0",
   authDomain: "maybeu-live.firebaseapp.com",
@@ -16,121 +16,109 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Помощник для поиска функции обратного вызова
-const findCallback = (args: any[]) => args.find(arg => typeof arg === 'function');
-
+// Универсальный сервис, который примет любые команды от вашего кода
 export class FirebaseService {
   
-  // --- STATE ---
-  // Принимаем activeEvent как any, чтобы код не падал, если придет строка
-  static updateGameState(activeEvent: any, ...args: any[]) {
-    // Если пришел объект - сохраняем как activeEvent
-    // Если пришла строка (ID) - можно сохранить ее или игнорировать, 
-    // но главное - не дать приложению упасть.
-    // Для совместимости сохраняем то, что пришло.
-    set(ref(db, 'gameState'), { activeEvent, timestamp: Date.now() });
-  }
-
-  static subscribeToGameState(arg1: any, ...args: any[]) {
-    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
-    if (callback) {
-      return onValue(ref(db, 'gameState'), (snapshot) => callback(snapshot.val()));
+  static subscribeToGameState(callback: any) {
+    // Если передали лишние параметры, берем последний (обычно это callback)
+    const cb = typeof callback === 'function' ? callback : arguments[arguments.length - 1];
+    if (typeof cb === 'function') {
+      return onValue(ref(db, 'gameState'), (snapshot) => cb(snapshot.val()));
     }
     return () => {};
   }
 
-  static onGameStateChange(arg1: any, ...args: any[]) {
-    return this.subscribeToGameState(arg1, ...args);
+  static onGameStateChange(cb: any, ...args: any[]) {
+    return this.subscribeToGameState(cb);
   }
 
-  static async resetGame(...args: any[]) {
+  static updateGameState(data: any) {
+    set(ref(db, 'gameState'), { activeEvent: data, timestamp: Date.now() });
+  }
+
+  static async resetGame() {
     await set(ref(db, 'gameState'), null);
   }
   
-  static async resetEvent(...args: any[]) {
+  static async resetEvent() {
     await this.resetGame();
   }
 
-  // --- GUESTS ---
-  static registerGuest(...args: any[]) {
-    let guestId, name;
-    if (typeof args[0] === 'object') {
-       guestId = args[0].id;
-       name = args[0].name;
+  // Гости
+  static registerGuest(guestId: string, name: string) {
+    // Поддержка и объекта, и отдельных аргументов
+    if (typeof guestId === 'object' && (guestId as any).id) {
+        const g = guestId as any;
+        set(ref(db, `guests/${g.id}`), { name: g.name, joinedAt: Date.now(), score: 0 });
     } else {
-       guestId = args[0];
-       name = args[1];
-    }
-    if (guestId) {
         set(ref(db, `guests/${guestId}`), { name, joinedAt: Date.now(), score: 0 });
     }
   }
 
-  static onGuestsCountChange(arg1: any, ...args: any[]) {
-    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
-    if (callback) {
-        return onValue(ref(db, 'guests'), (snapshot) => callback(snapshot.size));
-    }
-    return () => {};
+  static onGuestsCountChange(cb: any) {
+     const callback = typeof cb === 'function' ? cb : arguments[arguments.length - 1];
+     if (typeof callback === 'function') {
+        return onValue(ref(db, 'guests'), (s) => callback(s.size));
+     }
+     return () => {};
   }
 
-  // --- PULSE & PROGRESS ---
-  static sendScreenPulse(...args: any[]) {
+  // Пульс экрана (связь)
+  static sendScreenPulse() {
     set(ref(db, 'screenPulse'), Date.now());
   }
 
-  static onScreenPulseChange(arg1: any, ...args: any[]) {
-    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
-    if (callback) {
-        return onValue(ref(db, 'screenPulse'), (snapshot) => callback(snapshot.val()));
+  static onScreenPulseChange(cb: any) {
+    const callback = typeof cb === 'function' ? cb : arguments[arguments.length - 1];
+    if (typeof callback === 'function') {
+      return onValue(ref(db, 'screenPulse'), (s) => callback(s.val()));
     }
     return () => {};
   }
 
-  static onPushProgressChange(arg1: any, ...args: any[]) {
-    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
-    if (callback) {
-        return onValue(ref(db, 'pushProgress'), (snapshot) => callback(snapshot.val()));
+  // Ответы
+  static submitAnswer(guestId: any, answerIdx: any) {
+     const gid = typeof guestId === 'object' ? guestId.guestId : guestId;
+     const ans = typeof guestId === 'object' ? guestId.answerIdx : answerIdx;
+     
+     const key = push(ref(db, 'answers')).key;
+     update(ref(db), { [`answers/${key}`]: { guestId: gid, answerIdx: ans } });
+  }
+
+  static onAnswersChange(cb: any) {
+    const callback = typeof cb === 'function' ? cb : arguments[arguments.length - 1];
+    if (typeof callback === 'function') {
+      return onValue(ref(db, 'answers'), (s) => callback(s.val()));
     }
     return () => {};
   }
-
-  static updatePushProgress(val: any, ...args: any[]) {
-    set(ref(db, 'pushProgress'), val);
+  
+  // Картинки и прогресс
+  static addGuestImage(guestId: any, url: any) {
+      push(ref(db, 'guestImages'), { guestId, imageUrl: url });
+  }
+  
+  static onImagesChange(cb: any) {
+      const callback = typeof cb === 'function' ? cb : arguments[arguments.length - 1];
+      if (typeof callback === 'function') {
+        return onValue(ref(db, 'guestImages'), (s) => callback(s.val()));
+      }
+      return () => {};
   }
 
-  // --- ANSWERS & IMAGES ---
-  static submitAnswer(...args: any[]) {
-    const guestId = args[0];
-    const answerIdx = args[1];
-    if (guestId !== undefined) {
-        const key = push(ref(db, 'answers')).key;
-        update(ref(db), { [`answers/${key}`]: { guestId, answerIdx, timestamp: Date.now() } });
-    }
+  static updatePushProgress(val: any) {
+      set(ref(db, 'pushProgress'), val);
   }
 
-  static onAnswersChange(arg1: any, ...args: any[]) {
-    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
-    if (callback) {
-        return onValue(ref(db, 'answers'), (snapshot) => callback(snapshot.val()));
-    }
-    return () => {};
-  }
-
-  static addGuestImage(...args: any[]) {
-    const arg1 = args[0];
-    const payload = typeof arg1 === 'object' ? arg1 : { guestId: arg1, imageUrl: args[1] };
-    push(ref(db, 'guestImages'), payload);
-  }
-
-  static onImagesChange(arg1: any, ...args: any[]) {
-    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
-    if (callback) {
-        return onValue(ref(db, 'guestImages'), (snapshot) => callback(snapshot.val()));
-    }
-    return () => {};
+  static onPushProgressChange(cb: any) {
+      const callback = typeof cb === 'function' ? cb : arguments[arguments.length - 1];
+      if (typeof callback === 'function') {
+        return onValue(ref(db, 'pushProgress'), (s) => callback(s.val()));
+      }
+      return () => {};
   }
 }
 
+// Экспорты для надежности
 export const updateGameState = FirebaseService.updateGameState;
 export const subscribeToGameState = FirebaseService.subscribeToGameState;
