@@ -5,7 +5,7 @@ const apiKey = process.env.API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-// Добавляем ...args, чтобы принимать любые параметры (mood, difficulty и т.д.)
+// ...args: any[] в конце позволяет вызывать функцию с любым количеством лишних параметров
 export const generateQuizQuestions = async (
   topic: string, 
   lang: Language, 
@@ -43,10 +43,12 @@ export const generateBelieveNotQuestions = async (
   }
 };
 
-export const generateGuestGreeting = async (name: string): Promise<string> => {
+export const generateGuestGreeting = async (...args: any[]): Promise<string> => {
+  // Берем первый строковый аргумент как имя
+  const name = args.find(a => typeof a === 'string') || 'Guest';
   return `Welcome, ${name}!`;
 };
 
-export const generateAiImage = async (prompt: string): Promise<string | null> => {
+export const generateAiImage = async (...args: any[]): Promise<string | null> => {
   return null;
 };

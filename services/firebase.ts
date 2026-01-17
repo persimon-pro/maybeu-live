@@ -16,40 +16,41 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Тип для функции отписки
-type Unsubscribe = () => void;
+// Вспомогательная функция: находит callback среди аргументов
+const findCallback = (args: any[]) => args.find(arg => typeof arg === 'function');
 
 export class FirebaseService {
   
   // --- STATE ---
-  // Возвращаем функцию отписки (Unsubscribe), чтобы useEffect не падал
-  static subscribeToGameState(callback: (data: any) => void): Unsubscribe {
-    const unsub = onValue(ref(db, 'gameState'), (snapshot) => callback(snapshot.val()));
-    return unsub; 
+  // Принимаем arg1 и ...args, чтобы "проглотить" любые варианты вызова
+  static subscribeToGameState(arg1: any, ...args: any[]) {
+    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
+    if (callback) {
+      return onValue(ref(db, 'gameState'), (snapshot) => callback(snapshot.val()));
+    }
+    return () => {}; // Пустая отписка, если callback не найден
   }
 
-  // Принимаем любые доп. аргументы (...args), чтобы старый код не ломался
-  static onGameStateChange(callback: (data: any) => void, ...args: any[]): Unsubscribe {
-    return this.subscribeToGameState(callback);
+  static onGameStateChange(arg1: any, ...args: any[]) {
+    return this.subscribeToGameState(arg1, ...args);
   }
 
-  static updateGameState(event: LiveEvent | null) {
+  // Принимаем ...args, чтобы игнорировать лишние параметры
+  static updateGameState(event: LiveEvent | null, ...args: any[]) {
     set(ref(db, 'gameState'), { activeEvent: event, timestamp: Date.now() });
   }
 
-  static async resetGame() {
+  static async resetGame(...args: any[]) {
     await set(ref(db, 'gameState'), null);
   }
   
-  // Принимаем аргументы, даже если не используем их
   static async resetEvent(...args: any[]) {
     await this.resetGame();
   }
 
   // --- GUESTS ---
-  // Используем ...args, чтобы принять и объект, и отдельные параметры
   static registerGuest(...args: any[]) {
-    // Пробуем понять, что нам передали (id+name или объект)
+    // Логика: если первый аргумент объект - берем из него, иначе считаем аргументы по порядку
     let guestId, name;
     if (typeof args[0] === 'object') {
        guestId = args[0].id;
@@ -63,9 +64,12 @@ export class FirebaseService {
     }
   }
 
-  static onGuestsCountChange(callback: (count: number) => void, ...args: any[]): Unsubscribe {
-    const unsub = onValue(ref(db, 'guests'), (snapshot) => callback(snapshot.size));
-    return unsub;
+  static onGuestsCountChange(arg1: any, ...args: any[]) {
+    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
+    if (callback) {
+        return onValue(ref(db, 'guests'), (snapshot) => callback(snapshot.size));
+    }
+    return () => {};
   }
 
   // --- PULSE & PROGRESS ---
@@ -73,14 +77,20 @@ export class FirebaseService {
     set(ref(db, 'screenPulse'), Date.now());
   }
 
-  static onScreenPulseChange(callback: (val: any) => void, ...args: any[]): Unsubscribe {
-    const unsub = onValue(ref(db, 'screenPulse'), (snapshot) => callback(snapshot.val()));
-    return unsub;
+  static onScreenPulseChange(arg1: any, ...args: any[]) {
+    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
+    if (callback) {
+        return onValue(ref(db, 'screenPulse'), (snapshot) => callback(snapshot.val()));
+    }
+    return () => {};
   }
 
-  static onPushProgressChange(callback: (val: any) => void, ...args: any[]): Unsubscribe {
-    const unsub = onValue(ref(db, 'pushProgress'), (snapshot) => callback(snapshot.val()));
-    return unsub;
+  static onPushProgressChange(arg1: any, ...args: any[]) {
+    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
+    if (callback) {
+        return onValue(ref(db, 'pushProgress'), (snapshot) => callback(snapshot.val()));
+    }
+    return () => {};
   }
 
   static updatePushProgress(val: any, ...args: any[]) {
@@ -88,32 +98,38 @@ export class FirebaseService {
   }
 
   // --- ANSWERS & IMAGES ---
-  // Принимаем до 5 аргументов (как в ошибке)
   static submitAnswer(...args: any[]) {
-    // Берем первые два как основные, остальное игнорируем
     const guestId = args[0];
     const answerIdx = args[1];
-    const key = push(ref(db, 'answers')).key;
-    update(ref(db), { [`answers/${key}`]: { guestId, answerIdx, timestamp: Date.now() } });
+    if (guestId !== undefined) {
+        const key = push(ref(db, 'answers')).key;
+        update(ref(db), { [`answers/${key}`]: { guestId, answerIdx, timestamp: Date.now() } });
+    }
   }
 
-  static onAnswersChange(callback: (data: any) => void, ...args: any[]): Unsubscribe {
-    const unsub = onValue(ref(db, 'answers'), (snapshot) => callback(snapshot.val()));
-    return unsub;
+  static onAnswersChange(arg1: any, ...args: any[]) {
+    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
+    if (callback) {
+        return onValue(ref(db, 'answers'), (snapshot) => callback(snapshot.val()));
+    }
+    return () => {};
   }
 
-  static addGuestImage(arg1: any, ...args: any[]) {
-    // Если передали объект {url, user...} или просто аргументы
-    const payload = typeof arg1 === 'object' ? arg1 : { guestId: arg1, imageUrl: args[0] };
+  static addGuestImage(...args: any[]) {
+    // Пытаемся понять, что нам передали
+    const arg1 = args[0];
+    const payload = typeof arg1 === 'object' ? arg1 : { guestId: arg1, imageUrl: args[1] };
     push(ref(db, 'guestImages'), payload);
   }
 
-  static onImagesChange(callback: (data: any) => void, ...args: any[]): Unsubscribe {
-    const unsub = onValue(ref(db, 'guestImages'), (snapshot) => callback(snapshot.val()));
-    return unsub;
+  static onImagesChange(arg1: any, ...args: any[]) {
+    const callback = typeof arg1 === 'function' ? arg1 : findCallback(args);
+    if (callback) {
+        return onValue(ref(db, 'guestImages'), (snapshot) => callback(snapshot.val()));
+    }
+    return () => {};
   }
 }
 
-// Экспорты для совместимости
 export const updateGameState = FirebaseService.updateGameState;
 export const subscribeToGameState = FirebaseService.subscribeToGameState;
