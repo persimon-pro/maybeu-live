@@ -1,7 +1,7 @@
 import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveEvent, GameType, QuizQuestion, Language } from '../types';
-import { Zap, Play, RotateCcw, Award, Plus, Trash2, Cpu, PlayCircle, ImageIcon, MousePointer2, HelpCircle, PlusCircle, List, CheckCircle2, XCircle, Rocket, MonitorOff, Edit2, Save, X, Check } from 'lucide-react';
+import { Zap, Play, RotateCcw, Award, Plus, Trash2, Cpu, PlayCircle, ImageIcon, MousePointer2, HelpCircle, PlusCircle, List, CheckCircle2, XCircle, Rocket, MonitorOff, Edit2, Save, X, Check, Clock } from 'lucide-react';
 import { generateQuizQuestions, generateBelieveNotQuestions } from '../services/geminiService';
 
 interface Props {
