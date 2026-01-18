@@ -28,22 +28,40 @@ export const FirebaseService = {
   },
 
   resetGameData: (code: string) => {
-    // Очистка данных конкретной сессии
     remove(ref(db, `session_data/${code}`));
     set(ref(db, 'gameState'), { isActive: false });
   },
 
+  // --- CRM / ЛИДЫ ---
+  
+  // Отправка (Гость)
+  sendLead: (lead: any) => {
+    push(ref(db, 'crm_leads'), lead);
+  },
+
+  // Получение (Ведущий)
+  subscribeToLeads: (cb: (leads: any[]) => void) => {
+    return onValue(ref(db, 'crm_leads'), (snapshot) => {
+      const data = snapshot.val();
+      // Превращаем объект Firebase в массив
+      const leadsList = data ? Object.values(data) : [];
+      cb(leadsList);
+    });
+  },
+
+  // Очистка базы (Ведущий)
+  clearLeads: () => {
+    set(ref(db, 'crm_leads'), null);
+  },
+
   // --- ГОСТЬ / ДЕЙСТВИЯ ---
   
-  // Регистрация гостя
   joinEvent: (code: string, name: string) => {
     const userRef = ref(db, `session_data/${code}/registry/${name}`);
     set(userRef, { name, timestamp: Date.now() });
   },
 
-  // Отправка ответов (Квиз/Квест)
   sendAnswer: (code: string, type: 'quiz' | 'quest', key: string | number, data: any) => {
-    // key - это номер вопроса или этапа
     const path = type === 'quiz' 
       ? `session_data/${code}/quiz_answers/${data.name}/${key}`
       : `session_data/${code}/quest_responses/${key}`;
@@ -55,19 +73,12 @@ export const FirebaseService = {
     }
   },
 
-  // Отправка картинки
   sendImage: (code: string, data: any) => {
     push(ref(db, `session_data/${code}/images`), data);
   },
 
-  // Гонка кликов
   updateRaceProgress: (code: string, name: string, count: number) => {
     set(ref(db, `session_data/${code}/race/${name}`), count);
-  },
-
-  // Отправка лидов (CRM)
-  sendLead: (lead: any) => {
-    push(ref(db, 'crm_leads'), lead);
   },
 
   // --- ПОДПИСКИ (LISTENERS) ---
@@ -89,12 +100,10 @@ export const FirebaseService = {
     return onValue(ref(db, 'gameState'), (s) => cb(s.val()));
   },
 
-  // Подписка на все данные сессии (для Большого Экрана)
   subscribeToSessionData: (code: string, cb: (data: any) => void) => {
     return onValue(ref(db, `session_data/${code}`), (s) => cb(s.val() || {}));
   },
 
-  // Пинг экрана (Heartbeat)
   sendScreenHeartbeat: () => {
     set(ref(db, 'screen_status'), { last_seen: Date.now() });
   },
