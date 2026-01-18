@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, onValue, get, child, update, push } from "firebase/database";
+import { getDatabase, ref, update, get, onValue, push } from "firebase/database";
 
+// Твои рабочие ключи
 const firebaseConfig = {
   apiKey: "AIzaSyC-vmOaMUz_fBFjltcxp6RyNvyMmAmdqJ0",
   authDomain: "maybeu-live.firebaseapp.com",
@@ -16,50 +17,38 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 export const FirebaseService = {
-  // Зеркалим событие (чтобы телефон его нашел)
+  // Ведущий: отправляет событие в эфир
   syncEvent: (event: any) => {
     if (!event) return;
     update(ref(db, 'currentEvent'), event);
   },
 
-  // Зеркалим состояние игры (вопросы, таймер)
+  // Ведущий: отправляет состояние игры (вопрос/слайд)
   syncGameState: (state: any) => {
     if (!state) return;
     update(ref(db, 'gameState'), state);
   },
 
-  // Для Гостя: поиск события в облаке
+  // Гость: ищет событие по коду
   findEventByCode: async (code: string) => {
     try {
       const snapshot = await get(ref(db, 'currentEvent'));
       const event = snapshot.val();
-      // Проверяем код (если совпадает - возвращаем)
-      if (event && event.code && event.code.toUpperCase() === code.toUpperCase()) {
-          return event;
-      }
-    } catch (e) {
-      console.error(e);
-    }
+      if (event && event.code === code) return event;
+    } catch (e) { console.error(e); }
     return null;
   },
 
-  // Подписка для Гостя и Экрана
-  subscribeToGame: (callback: (data: any) => void) => {
-    return onValue(ref(db, 'gameState'), (snapshot) => {
-      const val = snapshot.val();
-      if (val) callback(val);
+  // Гость: слушает игру
+  subscribeToGame: (cb: (data: any) => void) => {
+    return onValue(ref(db, 'gameState'), (s) => {
+      const val = s.val();
+      if (val) cb(val);
     });
   },
 
-  // Обратная связь: Гость отправляет ответы/картинки
+  // Гость: отправляет клики/ответы
   sendAction: (type: string, data: any) => {
-     push(ref(db, `actions/${type}`), { ...data, timestamp: Date.now() });
-  },
-  
-  subscribeToActions: (type: string, callback: (data: any) => void) => {
-     return onValue(ref(db, `actions/${type}`), (snapshot) => {
-        const val = snapshot.val();
-        if (val) callback(Object.values(val));
-     });
+    push(ref(db, `actions/${type}`), { ...data, timestamp: Date.now() });
   }
 };
