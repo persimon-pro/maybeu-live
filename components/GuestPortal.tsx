@@ -2,7 +2,7 @@ import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveEvent, GameType, Language, GuestRecord } from '../types';
 import * as LucideIcons from 'lucide-react';
-const { PlayCircle: PlayIcon, Smartphone: PhoneIcon, Zap: ZapIcon, ShieldAlert: AlertIcon, Send: SendIcon, ImageIcon: ImgIcon, Sparkles: SparkIcon, Loader2: LoaderIcon, CheckCircle2: CheckIcon, Clock: ClockIcon, User: UserIcon, Calendar: CalIcon, MessageSquare: MsgIcon, Users, Camera, Calculator, Upload } = LucideIcons;
+const { PlayCircle: PlayIcon, Smartphone: PhoneIcon, Zap: ZapIcon, ShieldAlert: AlertIcon, Send: SendIcon, ImageIcon: ImgIcon, Sparkles: SparkIcon, Loader2: LoaderIcon, CheckCircle2: CheckIcon, Clock: ClockIcon, User: UserIcon, Calendar: CalIcon, MessageSquare: MsgIcon, Users, Camera, Calculator, Upload, Check } = LucideIcons;
 
 import { generateAiImage } from '../services/geminiService';
 
@@ -12,6 +12,7 @@ interface Props {
 }
 
 const TRANSLATIONS = {
+  // ... (Оставляем словарь без изменений для краткости, он подтянется)
   ru: {
     join: 'Вход в игру',
     enterDetails: 'Введите код события и ваше имя',
@@ -25,6 +26,7 @@ const TRANSLATIONS = {
     question: 'Вопрос',
     challengeActive: 'КОНКУРС АКТИВЕН',
     shakePhone: 'ТРЯСИ ТЕЛЕФОН!',
+    enableSensor: 'АКТИВИРОВАТЬ СЕНСОР',
     pushTitle: 'ЖМИ КАК МОЖНО БЫСТРЕЕ!',
     pushBtn: 'ЖМИ!',
     aiArtBattle: 'ИИ АРТ-БИТВА',
@@ -67,6 +69,7 @@ const TRANSLATIONS = {
     question: 'Question',
     challengeActive: 'CHALLENGE ACTIVE',
     shakePhone: 'SHAKE YOUR PHONE!',
+    enableSensor: 'ENABLE SENSOR',
     pushTitle: 'PUSH AS FAST AS YOU CAN!',
     pushBtn: 'PUSH!',
     aiArtBattle: 'AI ART BATTLE',
@@ -107,6 +110,9 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
   const [joinedEvent, setJoinedEvent] = useState<LiveEvent | null>(null);
   
   const [pushCount, setPushCount] = useState(0);
+  const [shakeCount, setShakeCount] = useState(0);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+  
   const [imagePrompt, setImagePrompt] = useState('');
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -114,11 +120,9 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
   const [answerSubmitted, setAnswerSubmitted] = useState<any>(null);
   const [questionStartTime, setQuestionStartTime] = useState<number>(0);
 
-  // Quest states
   const [questInput, setQuestInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Lead form state
   const [leadName, setLeadName] = useState('');
   const [leadContact, setLeadContact] = useState('');
   const [leadBirthday, setLeadBirthday] = useState('');
@@ -127,27 +131,89 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
 
   const t = TRANSLATIONS[lang];
 
-  // Слушаем игру
+  // Подписка на игру
   useEffect(() => {
-    if (isJoined) {
-       return FirebaseService.subscribeToGame((val) => {
-         if (val) {
-           setGameState((prev: any) => {
-              if (prev?.currentIdx !== val.currentIdx || prev?.questStage !== val.questStage || prev?.gameType !== val.gameType) {
-                setAnswerSubmitted(null);
-                setQuestInput('');
-                setQuestionStartTime(Date.now());
-                if (val.gameType === GameType.PUSH_IT) setPushCount(0);
-              }
-              return val;
-           });
-         } else {
-            // Если игра сброшена
-            setGameState(null);
-         }
-       });
-    }
+     if (isJoined) {
+        return FirebaseService.subscribeToGame((val) => {
+           if (val) {
+             setGameState((prev: any) => {
+                // Сброс счетчиков при смене игры
+                if (prev?.gameType !== val.gameType) {
+                  setPushCount(0);
+                  setShakeCount(0);
+                  setPermissionGranted(false);
+                }
+                if (prev?.currentIdx !== val.currentIdx || prev?.questStage !== val.questStage) {
+                  setAnswerSubmitted(null);
+                  setQuestInput('');
+                  setQuestionStartTime(Date.now());
+                }
+                return val;
+             });
+           } else {
+              setGameState(null);
+           }
+        });
+     }
   }, [isJoined]);
+
+  // ЛОГИКА ТРЯСКИ (SHAKE IT)
+  useEffect(() => {
+    if (gameState?.gameType === GameType.SHAKE_IT && permissionGranted && joinedEvent) {
+      let lastX = 0, lastY = 0, lastZ = 0;
+      let lastUpdate = 0;
+      const SHAKE_THRESHOLD = 15;
+
+      const handleMotion = (e: DeviceMotionEvent) => {
+        const current = e.accelerationIncludingGravity;
+        if (!current) return;
+        
+        const curTime = Date.now();
+        if ((curTime - lastUpdate) > 100) {
+          const diffTime = curTime - lastUpdate;
+          lastUpdate = curTime;
+          
+          const speed = Math.abs(current.x! + current.y! + current.z! - lastX - lastY - lastZ) / diffTime * 10000;
+          
+          if (speed > SHAKE_THRESHOLD) {
+             setShakeCount(prev => {
+               const newCount = prev + 1;
+               // Отправляем в Firebase каждые 5 "трясков", чтобы не спамить
+               if (newCount % 5 === 0) {
+                 FirebaseService.updateShakeCount(joinedEvent.code, name, newCount);
+               }
+               return newCount;
+             });
+             if (window.navigator.vibrate) window.navigator.vibrate(50);
+          }
+          lastX = current.x!;
+          lastY = current.y!;
+          lastZ = current.z!;
+        }
+      };
+
+      window.addEventListener('devicemotion', handleMotion);
+      return () => window.removeEventListener('devicemotion', handleMotion);
+    }
+  }, [gameState?.gameType, permissionGranted, joinedEvent, name]);
+
+  const requestShakePermission = () => {
+    // Для iOS 13+
+    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+      (DeviceMotionEvent as any).requestPermission()
+        .then((response: string) => {
+          if (response === 'granted') {
+            setPermissionGranted(true);
+          } else {
+            alert('Permission denied');
+          }
+        })
+        .catch(console.error);
+    } else {
+      // Для Android и старых iOS
+      setPermissionGranted(true);
+    }
+  };
 
   const handleJoin = async () => {
     setError('');
@@ -157,14 +223,11 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
       setError(t.noEvent);
       return;
     }
-
     if (!name.trim()) return;
 
     setJoinedEvent(targetEvent);
     setLeadName(name); 
     setIsJoined(true);
-    
-    // Регистрируем гостя в Firebase
     FirebaseService.joinEvent(targetEvent.code, name);
   };
 
@@ -188,7 +251,6 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -212,10 +274,7 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
     if (pushCount >= 50 || gameState?.isCountdown || !joinedEvent) return;
     const newCount = pushCount + 1;
     setPushCount(newCount);
-    
-    // Отправляем прогресс в Firebase (оптимизация: можно отправлять каждые 5 кликов, но для реального времени шлем сразу)
     FirebaseService.updateRaceProgress(joinedEvent.code, name, newCount);
-
     if (window.navigator.vibrate) window.navigator.vibrate(20);
   };
 
@@ -253,7 +312,6 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
       notes: leadFeedback ? `Отзыв: ${leadFeedback}` : '',
       lastEventDate: new Date().toISOString().split('T')[0]
     };
-    
     FirebaseService.sendLead(newLead);
     setLeadSubmitted(true);
   };
@@ -299,12 +357,7 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
     );
   }
 
-  // ... (Оставшаяся часть рендера UI без изменений, так как она использует стейт) ...
-  // Для краткости я вернул начало UI, убедитесь, что остальная часть (render) соответствует оригиналу, 
-  // но вся логика теперь идет через FirebaseService.
-  
   if (gameState?.isCollectingLeads) {
-     // ... Код формы лидов (он теперь вызывает handleLeadSubmit с Firebase) ...
      return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center overflow-y-auto">
         <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-[40px] shadow-2xl animate-in slide-in-from-bottom-8 duration-500 my-4">
@@ -505,10 +558,22 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
         <div className="h-full flex flex-col items-center justify-center space-y-12">
           <div className="text-center space-y-4">
              <h2 className="text-5xl font-black text-white italic">{t.shakePhone}</h2>
+             <div className="text-6xl font-black text-rose-400 font-mono">{shakeCount}</div>
           </div>
-          <div className="w-48 h-48 bg-rose-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse">
-            <PhoneIcon size={64} className="text-white" />
-          </div>
+          
+          {!permissionGranted ? (
+            <button 
+              onClick={requestShakePermission}
+              className="w-48 h-48 bg-rose-600 rounded-full flex flex-col items-center justify-center shadow-2xl animate-pulse active:scale-95 transition-all border-4 border-rose-400"
+            >
+              <PhoneIcon size={48} className="text-white mb-2" />
+              <span className="text-white font-black text-xs uppercase max-w-[100px] text-center">{t.enableSensor}</span>
+            </button>
+          ) : (
+            <div className="w-48 h-48 bg-rose-500 rounded-full flex items-center justify-center shadow-2xl animate-[spin_0.5s_linear_infinite] border-4 border-white/20">
+              <PhoneIcon size={64} className="text-white" />
+            </div>
+          )}
         </div>
       )}
 

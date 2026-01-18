@@ -1,7 +1,7 @@
 import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LiveEvent, GameType, Language, QuizQuestion } from '../types';
-import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame, MonitorOff, Heart } from 'lucide-react';
+import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame, MonitorOff, Heart, RotateCcw } from 'lucide-react';
 
 interface Props { 
   activeEvent: LiveEvent | null; 
@@ -130,7 +130,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     const unsub = FirebaseService.subscribeToEvent((evt) => {
       setActiveEvent(evt);
     });
-    // Отправляем пинг, что экран жив
     const pulse = setInterval(() => {
       FirebaseService.sendScreenHeartbeat();
     }, 2000);
@@ -147,7 +146,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
             if (prev?.gameType !== gs.gameType) {
               setGameFinished(false);
             }
-            // Для квизов завершение по индексу вопроса
             if (gs.gameType === GameType.QUIZ || gs.gameType === GameType.BELIEVE_NOT || gs.gameType === GameType.QUEST) {
               setGameFinished(gs.currentIdx >= (gs.questions?.length || 10));
             }
@@ -158,7 +156,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     return unsubGame;
   }, []);
 
-  // 3. Подписываемся на данные сессии (ГЛАВНОЕ: СЛУШАЕМ КЛИКИ ГОСТЕЙ)
+  // 3. Подписываемся на данные сессии (ГЛАВНОЕ: СЛУШАЕМ КЛИКИ И ТРЯСКУ)
   useEffect(() => {
     if (activeEvent?.code) {
       const unsub = FirebaseService.subscribeToSessionData(activeEvent.code, (data) => {
@@ -167,12 +165,10 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
            setOnlineCount(Object.keys(data.registry).length);
          }
          
-         // --- ЛОГИКА ПОБЕДЫ В "ЖМИ" ---
          if (gameState?.gameType === GameType.PUSH_IT && data.race && !gameFinished && gameState?.isActive && !gameState?.isCountdown) {
-            // Находим того, у кого >= 50
             const winnerEntry = Object.entries(data.race).find(([_, count]) => Number(count) >= 50);
             if (winnerEntry) {
-              setGameFinished(true); // <--- ЭТО ПЕРЕКЛЮЧИТ ЭКРАН НА ПОБЕДИТЕЛЯ
+              setGameFinished(true);
             }
          }
       });
@@ -246,6 +242,15 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .slice(0, 5);
   }, [sessionData.race]);
 
+  // Результаты тряски (топ-5)
+  const shakeResults = useMemo(() => {
+    if (!sessionData.shake) return [];
+    return Object.entries(sessionData.shake)
+      .map(([name, count]) => ({ name, score: Number(count) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+  }, [sessionData.shake]);
+
   const getGuestImages = () => {
      if (!sessionData.images) return [];
      return Object.values(sessionData.images);
@@ -280,7 +285,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
      );
   }
 
-  // --- СПЕЦИАЛЬНЫЙ ЭКРАН "ЭФИР ЗАВЕРШЕН" ---
   if (activeEvent.status === 'COMPLETED') {
     return (
       <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden animate-in fade-in duration-1000">
@@ -296,7 +300,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
             <p className="text-2xl font-bold text-slate-500 uppercase tracking-[0.5em]">{t.completed}</p>
          </div>
          
-         {/* Background decoration */}
          <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] animate-pulse"></div>
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/30 rounded-full blur-[100px] animate-pulse" style={{animationDelay: '1s'}}></div>
@@ -305,7 +308,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     );
   }
 
-  // Lobby view before game starts
   if (!gameState || (!gameState.isActive && !gameFinished)) {
     return (
       <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden">
@@ -319,8 +321,8 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
           
           {activeEvent.status === 'LIVE' ? (
             <div className="bg-white p-8 rounded-[40px] shadow-2xl inline-block border-[12px] border-indigo-600/20 animate-in zoom-in duration-500">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu-live.vercel.app/`} alt="QR" className="w-[300px] h-[300px]" />
-              <div className="mt-4 text-indigo-900 font-black text-xl uppercase tracking-widest">{t.joinOn} maybeu.ru</div>
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu.live/join/${activeEvent.code}`} alt="QR" className="w-[300px] h-[300px]" />
+              <div className="mt-4 text-indigo-900 font-black text-xl uppercase tracking-widest">{t.joinOn} maybeu.live</div>
             </div>
           ) : (
             <div className="py-20 animate-in fade-in duration-1000">
@@ -343,7 +345,8 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       <header className="flex justify-between items-start mb-12 relative z-10">
         <div className="flex items-center gap-6">
           <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl">
-            {gameState.gameType === GameType.QUEST ? <Rocket size={48} className="text-white" /> : <Zap size={48} className="text-white" />}
+            {gameState.gameType === GameType.QUEST ? <Rocket size={48} className="text-white" /> : 
+             gameState.gameType === GameType.SHAKE_IT ? <RotateCcw size={48} className="text-white" /> : <Zap size={48} className="text-white" />}
           </div>
           <div>
             <h2 className="text-4xl font-black text-white italic uppercase">
@@ -351,6 +354,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                gameState.gameType === GameType.QUIZ ? t.quizTitle :
                gameState.gameType === GameType.BELIEVE_NOT ? t.believeTitle :
                gameState.gameType === GameType.PUSH_IT ? t.pushTitle :
+               gameState.gameType === GameType.SHAKE_IT ? t.shakeTitle :
                gameState.gameType === GameType.IMAGE_GEN ? t.artTitle : t.questTitle}
             </h2>
             {!gameFinished && gameState.gameType === GameType.QUEST && <p className="text-xl text-indigo-400 font-bold uppercase tracking-widest">ЭТАП {gameState.questStage} / 4</p>}
@@ -377,14 +381,14 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                  </div>
               )}
             </div>
-            {(gameState.gameType === GameType.QUEST ? questResults : (gameState.gameType === GameType.PUSH_IT ? pushResults : quizLeaders)).map((player, i) => (
+            {(gameState.gameType === GameType.QUEST ? questResults : (gameState.gameType === GameType.PUSH_IT ? pushResults : (gameState.gameType === GameType.SHAKE_IT ? shakeResults : quizLeaders))).map((player, i) => (
               <div key={player.name} className={`flex items-center gap-6 bg-slate-900 border-2 p-6 rounded-[30px] transition-all transform hover:scale-105 ${i === 0 ? 'border-amber-500 shadow-2xl scale-110' : 'border-slate-800'}`}>
                 <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 ${i === 0 ? 'bg-amber-500' : 'bg-slate-800'}`}>
                    {i === 0 ? <Trophy className="text-amber-900" size={40} /> : <Medal className="text-slate-500" size={32} />}
                 </div>
                 <div className="flex-1">
                    <h3 className="text-4xl font-black text-white italic uppercase">{player.name}</h3>
-                   <span className="text-indigo-400 font-bold uppercase tracking-widest text-sm">{player.score} {gameState.gameType === GameType.PUSH_IT ? 'clicks' : t.score}</span>
+                   <span className="text-indigo-400 font-bold uppercase tracking-widest text-sm">{player.score} {gameState.gameType === GameType.PUSH_IT ? 'clicks' : gameState.gameType === GameType.SHAKE_IT ? 'power' : t.score}</span>
                 </div>
                 <div className="text-6xl font-black text-slate-800">#{i + 1}</div>
               </div>
@@ -440,6 +444,29 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                     </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {gameState.gameType === GameType.SHAKE_IT && (
+              <div className="w-full max-w-5xl mx-auto space-y-12">
+                 <div className="text-center space-y-4">
+                    <h1 className="text-8xl font-black text-white italic animate-bounce">{t.shakeTitle}</h1>
+                    <p className="text-2xl text-rose-400 font-bold uppercase tracking-widest">{t.shakeFaster}</p>
+                 </div>
+                 <div className="grid grid-cols-5 gap-8 items-end h-[400px]">
+                    {shakeResults.map(({name, score}, i) => (
+                       <div key={name} className="flex flex-col items-center gap-4 h-full justify-end group">
+                          <div className="text-2xl font-black text-white uppercase italic truncate w-full text-center">{name}</div>
+                          <div className="w-full bg-slate-900 rounded-[30px] border-4 border-slate-800 relative overflow-hidden flex-1 shadow-2xl">
+                             <div 
+                               className={`absolute bottom-0 w-full transition-all duration-300 rounded-t-[20px] ${i === 0 ? 'bg-gradient-to-t from-rose-600 to-amber-500 animate-pulse' : 'bg-indigo-600'}`}
+                               style={{ height: `${Math.min(100, score)}%` }}
+                             />
+                          </div>
+                          <div className="text-3xl font-mono text-indigo-400 font-black">{score}</div>
+                       </div>
+                    ))}
+                 </div>
               </div>
             )}
 
