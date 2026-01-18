@@ -1,134 +1,564 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { LiveEvent, GameType, Language } from '../types';
-import { Phone, Zap, Send, Image as ImgIcon, Loader2, CheckCircle2, User, Clock } from 'lucide-react';
-import { generateAiImage } from '../services/geminiService';
-import { FirebaseService } from '../services/firebase'; // ВАЖНО
 
-interface Props { activeEvent: LiveEvent | null; lang: Language; }
+import React, { useState, useEffect, useRef } from 'react';
+import { LiveEvent, GameType, Language, GuestRecord } from '../types';
+import * as LucideIcons from 'lucide-react';
+const { PlayCircle: PlayIcon, Smartphone: PhoneIcon, Zap: ZapIcon, ShieldAlert: AlertIcon, Send: SendIcon, ImageIcon: ImgIcon, Sparkles: SparkIcon, Loader2: LoaderIcon, CheckCircle2: CheckIcon, Clock: ClockIcon, User: UserIcon, Calendar: CalIcon, MessageSquare: MsgIcon, Users, Camera, Calculator, Upload, Check } = LucideIcons;
+
+import { generateAiImage } from '../services/geminiService';
+
+interface Props {
+  activeEvent: LiveEvent | null;
+  lang: Language;
+}
 
 const TRANSLATIONS = {
-  ru: { join: 'Вход', enter: 'Введите код и имя', name: 'Имя', code: 'Код', go: 'Поехали!', waiting: 'Ждем ведущего...', question: 'Вопрос', sent: 'Отправлено!', push: 'ЖМИ!', shake: 'ТРЯСИ!', draw: 'Рисуй', prompt: 'Что нарисовать?', create: 'Создать' },
-  en: { join: 'Join', enter: 'Code & Name', name: 'Name', code: 'Code', go: 'Go!', waiting: 'Waiting...', question: 'Question', sent: 'Sent!', push: 'PUSH!', shake: 'SHAKE!', draw: 'Draw', prompt: 'Prompt', create: 'Create' }
+  ru: {
+    join: 'Вход в игру',
+    enterDetails: 'Введите код события и ваше имя',
+    namePlaceholder: 'Ваше Имя',
+    codePlaceholder: 'Код (напр. LOVE24)',
+    go: 'ПОЕХАЛИ!',
+    noEvent: 'Событие не найдено или не активно',
+    poweredBy: 'Создано на Maybeu Live™',
+    waiting: 'Ждем ведущего...',
+    getReady: 'Приготовьтесь, {name}! Скоро начнется следующий раунд.',
+    question: 'Вопрос',
+    challengeActive: 'КОНКУРС АКТИВЕН',
+    shakePhone: 'ТРЯСИ ТЕЛЕФОН!',
+    pushTitle: 'ЖМИ КАК МОЖНО БЫСТРЕЕ!',
+    pushBtn: 'ЖМИ!',
+    aiArtBattle: 'ИИ АРТ-БИТВА',
+    aiArtDesc: 'Опишите ваш шедевр и отправьте его на главный экран!',
+    imgDesc: 'Что нарисовать?',
+    imgTheme: 'Тема:',
+    imgPlaceholder: 'Напр.: Космонавт на дискотеке...',
+    magic: 'НЕЙРОСЕТЬ РИСУЕТ...',
+    create: 'СОЗДАТЬ ШЕДЕВР',
+    sent: 'ОТПРАВЛЕНО!',
+    sendToScreen: 'ОТПРАВИТЬ НА ЭКРАН',
+    believe: 'Верю',
+    notBelieve: 'Не верю',
+    countdown: 'ПРИГОТОВЬТЕСЬ! СТАРТ ЧЕРЕЗ:',
+    leadFormTitle: 'Мероприятие завершено!',
+    leadFormDesc: 'Оставьте ваши контакты и отзыв, чтобы мы могли отправить вам фото или связаться позже.',
+    leadName: 'Ваше имя',
+    leadContact: 'Телефон или Email',
+    leadBirthday: 'День рождения',
+    leadFeedback: 'Ваш отзыв (по желанию)',
+    leadSubmit: 'ОТПРАВИТЬ ДАННЫЕ',
+    leadSuccess: 'Спасибо! Ваши данные отправлены.',
+    leadClose: 'Закрыть',
+    days: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
+    questBtnSubmit: 'ОТПРАВИТЬ ОТВЕТ',
+    questPhotoBtn: 'ОТКРЫТЬ КАМЕРУ',
+    questUploadBtn: 'ВЫБРАТЬ ФАЙЛ',
+    questCalcBtn: 'ВКЛЮЧИТЬ КАЛЬКУЛЯТОР'
+  },
+  en: {
+    join: 'Join Game',
+    enterDetails: 'Enter event code and your name',
+    namePlaceholder: 'Your Name',
+    codePlaceholder: 'Code (e.g. LOVE24)',
+    go: "LET'S GO!",
+    noEvent: 'Event not found or not active',
+    poweredBy: 'Powered by Maybeu Live™',
+    waiting: 'Waiting for the host...',
+    getReady: 'Get ready, {name}! Next round soon.',
+    question: 'Question',
+    challengeActive: 'CHALLENGE ACTIVE',
+    shakePhone: 'SHAKE YOUR PHONE!',
+    pushTitle: 'PUSH AS FAST AS YOU CAN!',
+    pushBtn: 'PUSH!',
+    aiArtBattle: 'AI ART BATTLE',
+    aiArtDesc: 'Describe your masterpiece and send it to the screen!',
+    imgDesc: 'What to draw?',
+    imgTheme: 'Theme:',
+    imgPlaceholder: 'e.g.: Astronaut at a disco...',
+    magic: 'AI IS DRAWING...',
+    create: 'CREATE MASTERPIECE',
+    sent: 'SENT!',
+    sendToScreen: 'SEND TO SCREEN',
+    believe: 'Believe',
+    notBelieve: 'Don\'t',
+    countdown: 'GET READY! START IN:',
+    leadFormTitle: 'Event Completed!',
+    leadFormDesc: 'Leave your contact info and feedback to stay in touch.',
+    leadName: 'Your Name',
+    leadContact: 'Phone or Email',
+    leadBirthday: 'Birthday',
+    leadFeedback: 'Feedback (optional)',
+    leadSubmit: 'SUBMIT DATA',
+    leadSuccess: 'Thank you! Data sent.',
+    leadClose: 'Close',
+    days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    questBtnSubmit: 'SUBMIT ANSWER',
+    questPhotoBtn: 'OPEN CAMERA',
+    questUploadBtn: 'CHOOSE FILE',
+    questCalcBtn: 'OPEN CALCULATOR'
+  }
 };
 
-const GuestPortal: React.FC<Props> = ({ lang }) => {
+const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
   const [gameState, setGameState] = useState<any>(null);
   const [isJoined, setIsJoined] = useState(false);
   const [name, setName] = useState('');
   const [eventCode, setEventCode] = useState('');
-  const [answerSubmitted, setAnswerSubmitted] = useState<number | null>(null);
+  const [error, setError] = useState('');
+  const [joinedEvent, setJoinedEvent] = useState<LiveEvent | null>(null);
+  
   const [pushCount, setPushCount] = useState(0);
-  const [imgPrompt, setImgPrompt] = useState('');
-  const [genImg, setGenImg] = useState<string | null>(null);
-  const [isGen, setIsGen] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isImageSent, setIsImageSent] = useState(false);
+  const [answerSubmitted, setAnswerSubmitted] = useState<any>(null);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(0);
+
+  // Quest states
+  const [questInput, setQuestInput] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  //Lead form state
+  const [leadName, setLeadName] = useState('');
+  const [leadContact, setLeadContact] = useState('');
+  const [leadBirthday, setLeadBirthday] = useState('');
+  const [leadFeedback, setLeadFeedback] = useState('');
+  const [leadSubmitted, setLeadSubmitted] = useState(false);
 
   const t = TRANSLATIONS[lang];
 
-  // ПОДКЛЮЧЕНИЕ К FIREBASE
   useEffect(() => {
-    if (!isJoined) return;
-
-    // Слушаем состояние игры
-    const unsubGame = FirebaseService.subscribeToGameState((data) => {
-       // Проверяем, совпадает ли код события
-       if (data && data.activeEvent && data.activeEvent.code === eventCode) {
-          setGameState(data.activeEvent);
-          
-          // Сброс состояния при смене вопроса
-          if (data.activeEvent.currentIdx !== gameState?.currentIdx) {
-             setAnswerSubmitted(null);
+    const checkState = () => {
+      const stored = localStorage.getItem('game_state');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setGameState(prev => {
+          if (prev?.currentIdx !== parsed.currentIdx || prev?.questStage !== parsed.questStage || prev?.gameType !== parsed.gameType) {
+            setAnswerSubmitted(null);
+            setQuestInput('');
+            setQuestionStartTime(Date.now());
+            if (parsed.gameType === GameType.PUSH_IT) setPushCount(0);
           }
-       }
-    });
-
-    // Регистрируемся
-    FirebaseService.registerGuest(name + Date.now(), name);
-
-    return () => unsubGame();
-  }, [isJoined, eventCode, name]);
+          return parsed;
+        });
+      }
+    };
+    const interval = setInterval(checkState, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleJoin = () => {
-     if (name && eventCode) setIsJoined(true);
+    setError('');
+    const events = JSON.parse(localStorage.getItem('mc_events') || '[]');
+    const targetEvent = events.find((e: any) => e.code.toUpperCase() === eventCode.toUpperCase());
+    
+    if (!targetEvent || (targetEvent.status !== 'LIVE' && targetEvent.status !== 'COMPLETED')) {
+      setError(t.noEvent);
+      return;
+    }
+
+    if (!name.trim()) return;
+
+    setJoinedEvent(targetEvent);
+    setLeadName(name); 
+    setIsJoined(true);
+    
+    const registryKey = `guest_registry_${targetEvent.code}`;
+    const registry = JSON.parse(localStorage.getItem(registryKey) || '[]');
+    if (!registry.includes(name)) {
+      registry.push(name);
+      localStorage.setItem(registryKey, JSON.stringify(registry));
+    }
   };
 
-  const submitAnswer = (idx: number) => {
-     setAnswerSubmitted(idx);
-     FirebaseService.submitAnswer({ guestId: name, answerIdx: idx });
+  const submitQuestAnswer = (value: any, isImage: boolean = false) => {
+    if (answerSubmitted !== null || !joinedEvent || !gameState) return;
+    const timeTaken = Date.now() - questionStartTime;
+    setAnswerSubmitted(value);
+    
+    // Check if it's a standard quiz or a quest
+    const isStandardQuiz = gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT;
+    const responsesKey = isStandardQuiz 
+      ? `quiz_answers_${joinedEvent.code}` 
+      : `quest_responses_${joinedEvent.code}`;
+    
+    const allResponses = JSON.parse(localStorage.getItem(responsesKey) || '{}');
+    const key = isStandardQuiz ? gameState.currentIdx : gameState.questStage;
+    
+    if (isStandardQuiz) {
+      if (!allResponses[name]) allResponses[name] = {};
+      allResponses[name][key] = { value, timeTaken, name };
+    } else {
+      if (!allResponses[key]) allResponses[key] = [];
+      allResponses[key].push({ name, value, timeTaken, timestamp: Date.now(), isImage });
+    }
+    
+    localStorage.setItem(responsesKey, JSON.stringify(allResponses));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 400;
+        const scale = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.6);
+        submitQuestAnswer(base64, true);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handlePush = () => {
-     const newCount = pushCount + 1;
-     setPushCount(newCount);
-     FirebaseService.updatePushProgress({ [name]: newCount }); // Отправка прогресса
-     if (window.navigator.vibrate) window.navigator.vibrate(20);
+    if (pushCount >= 50 || gameState?.isCountdown) return;
+    const newCount = pushCount + 1;
+    setPushCount(newCount);
+    const progress = JSON.parse(localStorage.getItem('race_progress') || '{}');
+    progress[name] = newCount;
+    localStorage.setItem('race_progress', JSON.stringify(progress));
+    if (window.navigator.vibrate) window.navigator.vibrate(20);
   };
 
-  const handleGenImage = async () => {
-     setIsGen(true);
-     const url = await generateAiImage(imgPrompt);
-     if (url) {
-        setGenImg(url);
-        FirebaseService.addGuestImage({ guestId: name, imageUrl: url });
-     }
-     setIsGen(false);
+  const handleGenerateImage = async () => {
+    if (!imagePrompt.trim()) return;
+    setIsGeneratingImage(true);
+    try {
+      const url = await generateAiImage(imagePrompt);
+      if (url) {
+        setGeneratedImageUrl(url);
+        setIsGeneratingImage(false);
+      }
+    } catch (e) {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleSendToScreen = () => {
+    if (!generatedImageUrl) return;
+    const existing = JSON.parse(localStorage.getItem('guest_images') || '[]');
+    localStorage.setItem('guest_images', JSON.stringify([...existing, { url: generatedImageUrl, user: name, timestamp: Date.now() }]));
+    setIsImageSent(true);
+  };
+
+  const handleLeadSubmit = () => {
+    const guestsCrm = JSON.parse(localStorage.getItem('mc_crm_guests') || '[]');
+    const newLead: GuestRecord = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: leadName || name,
+      phone: leadContact.includes('@') ? '' : leadContact,
+      email: leadContact.includes('@') ? leadContact : '',
+      birthday: leadBirthday,
+      notes: leadFeedback ? `Отзыв: ${leadFeedback}` : '',
+      lastEventDate: new Date().toISOString().split('T')[0]
+    };
+    localStorage.setItem('mc_crm_guests', JSON.stringify([...guestsCrm, newLead]));
+    setLeadSubmitted(true);
   };
 
   if (!isJoined) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-950 min-h-screen">
-        <div className="w-full max-w-sm space-y-4 text-center">
-           <h1 className="text-4xl font-black text-white italic uppercase">{t.join}</h1>
-           <input value={eventCode} onChange={e => setEventCode(e.target.value.toUpperCase())} placeholder={t.code} className="w-full p-4 rounded-2xl bg-white/10 text-white font-black text-center text-xl uppercase placeholder:text-white/30 outline-none border-2 border-white/20 focus:border-white" />
-           <input value={name} onChange={e => setName(e.target.value)} placeholder={t.name} className="w-full p-4 rounded-2xl bg-white/10 text-white font-black text-center text-xl placeholder:text-white/30 outline-none border-2 border-white/20 focus:border-white" />
-           <button onClick={handleJoin} disabled={!name || !eventCode} className="w-full bg-white text-indigo-900 py-4 rounded-2xl font-black text-xl uppercase shadow-xl disabled:opacity-50">{t.go}</button>
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-indigo-950">
+        <div className="max-w-sm w-full space-y-8 animate-in zoom-in duration-300">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+              <PhoneIcon size={40} className="text-indigo-600" />
+            </div>
+            <h1 className="text-4xl font-black text-white mb-2">{t.join}</h1>
+            <p className="text-indigo-200">{t.enterDetails}</p>
+          </div>
+          <div className="space-y-4">
+            <input 
+              type="text" 
+              placeholder={t.codePlaceholder}
+              value={eventCode}
+              onChange={(e) => setEventCode(e.target.value.toUpperCase())}
+              className="w-full bg-indigo-900/50 border-2 border-indigo-400/30 rounded-2xl px-6 py-4 text-white text-xl font-mono font-bold placeholder:text-indigo-300 focus:border-white focus:outline-none transition-all uppercase"
+            />
+            <input 
+              type="text" 
+              placeholder={t.namePlaceholder}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-indigo-900/50 border-2 border-indigo-400/30 rounded-2xl px-6 py-4 text-white text-xl font-bold placeholder:text-indigo-300 focus:border-white focus:outline-none transition-all"
+            />
+            {error && <div className="text-rose-400 text-sm font-bold flex items-center gap-2 animate-bounce"><AlertIcon size={16}/> {error}</div>}
+            <button 
+              onClick={handleJoin}
+              disabled={!name.trim() || !eventCode.trim()}
+              className="w-full bg-white text-indigo-900 py-5 rounded-2xl text-2xl font-black shadow-xl disabled:opacity-50 active:scale-95 transition-all"
+            >
+              {t.go}
+            </button>
+          </div>
+          <div className="text-center text-xs text-indigo-400 font-bold tracking-widest uppercase">{t.poweredBy}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (gameState?.isCollectingLeads) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center overflow-y-auto">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-[40px] shadow-2xl animate-in slide-in-from-bottom-8 duration-500 my-4">
+           {!leadSubmitted ? (
+             <div className="space-y-6">
+                <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-indigo-600/20">
+                   <Users size={32} className="text-white" />
+                </div>
+                <div>
+                   <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">{t.leadFormTitle}</h2>
+                   <p className="text-slate-400 text-sm mt-1 leading-tight">{t.leadFormDesc}</p>
+                </div>
+                <div className="space-y-4 text-left">
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2 ml-1"><UserIcon size={10}/> {t.leadName}</label>
+                      <input value={leadName} onChange={e => setLeadName(e.target.value)} placeholder="..." className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white font-bold outline-none focus:border-indigo-500" />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2 ml-1"><PhoneIcon size={10}/> {t.leadContact}</label>
+                      <input value={leadContact} onChange={e => setLeadContact(e.target.value)} placeholder="+7... or mail@.." className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white font-bold outline-none focus:border-indigo-500" />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2 ml-1"><CalIcon size={10}/> {t.leadBirthday}</label>
+                      <input type="date" value={leadBirthday} onChange={e => setLeadBirthday(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white font-bold outline-none focus:border-indigo-500" />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2 ml-1"><MsgIcon size={10}/> {t.leadFeedback}</label>
+                      <textarea value={leadFeedback} onChange={e => setLeadFeedback(e.target.value)} placeholder="..." className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3 text-white font-bold outline-none focus:border-indigo-500 h-20 resize-none" />
+                   </div>
+                </div>
+                <button 
+                  onClick={handleLeadSubmit}
+                  className="w-full bg-white text-indigo-900 py-4 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all"
+                >
+                   {t.leadSubmit}
+                </button>
+             </div>
+           ) : (
+             <div className="py-10 space-y-6">
+                <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto">
+                   <CheckIcon size={48} className="text-white" />
+                </div>
+                <h2 className="text-2xl font-black text-white">{t.leadSuccess}</h2>
+                <button 
+                  onClick={() => setIsJoined(false)}
+                  className="bg-slate-800 px-8 py-3 rounded-xl text-slate-400 font-black uppercase text-xs"
+                >
+                  {t.leadClose}
+                </button>
+             </div>
+           )}
         </div>
       </div>
     );
   }
 
   if (!gameState || !gameState.isActive) {
-     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center min-h-screen">
-           <Loader2 size={48} className="text-indigo-500 animate-spin mb-4" />
-           <h2 className="text-2xl font-black text-white uppercase">{t.waiting}</h2>
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-950 text-center space-y-6">
+        <div className="p-8 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl animate-pulse">
+           <PlayIcon size={64} className="mx-auto text-indigo-500 mb-4" />
+           <h2 className="text-2xl font-black text-white">{t.waiting}</h2>
+           <p className="text-slate-400 mt-2">{t.getReady.replace('{name}', name)}</p>
         </div>
-     );
+      </div>
+    );
   }
 
   return (
-    <div className="flex-1 bg-indigo-950 p-4 min-h-screen flex flex-col">
-       {(gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && (
-          <div className="space-y-6 my-auto">
-             <div className="bg-white/10 p-6 rounded-3xl border border-white/20">
-                <h2 className="text-xl font-bold text-white text-center">{gameState.questions[gameState.currentIdx]?.question}</h2>
-             </div>
-             <div className="grid gap-3">
-                {gameState.questions[gameState.currentIdx]?.options.map((opt: string, i: number) => (
-                   <button key={i} onClick={() => submitAnswer(i)} disabled={answerSubmitted !== null} className={`p-6 rounded-2xl text-xl font-black uppercase transition-all ${answerSubmitted === i ? 'bg-amber-500 text-black' : 'bg-white text-indigo-900'}`}>
-                      {opt}
-                   </button>
-                ))}
-             </div>
+    <div className="flex-1 flex flex-col p-4 bg-indigo-950 overflow-y-auto">
+      {(gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && (
+        <div className="flex flex-col space-y-6">
+          <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20">
+            <h2 className="text-2xl font-bold text-white leading-tight">{gameState.questions[gameState.currentIdx]?.question}</h2>
           </div>
-       )}
+          <div className={`grid gap-4 ${gameState.gameType === GameType.BELIEVE_NOT ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {gameState.questions[gameState.currentIdx]?.options.map((opt: string, i: number) => (
+              <button 
+                key={i}
+                disabled={answerSubmitted !== null}
+                onClick={() => submitQuestAnswer(i)}
+                className={`w-full py-8 px-6 rounded-3xl text-center text-xl font-black transition-all transform active:scale-95 border-b-8 ${
+                  answerSubmitted === i 
+                  ? 'bg-amber-400 border-amber-600 text-amber-900' 
+                  : answerSubmitted !== null 
+                    ? 'bg-white/5 border-white/10 text-white/30'
+                    : i === 0 && gameState.gameType === GameType.BELIEVE_NOT
+                        ? 'bg-emerald-500 border-emerald-700 text-white'
+                        : i === 1 && gameState.gameType === GameType.BELIEVE_NOT
+                            ? 'bg-rose-500 border-rose-700 text-white'
+                            : 'bg-white text-indigo-900 border-indigo-200'
+                }`}
+              >
+                <span>{opt}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-       {gameState.gameType === GameType.PUSH_IT && (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-             <div className="text-6xl font-black text-white">{pushCount}</div>
-             <button onClick={handlePush} className="w-64 h-64 rounded-full bg-rose-600 border-8 border-rose-400 shadow-2xl flex items-center justify-center active:scale-95 transition-all">
-                <span className="text-4xl font-black text-white uppercase">{t.push}</span>
-             </button>
-          </div>
-       )}
+      {gameState.gameType === GameType.QUEST && (
+        <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+           {answerSubmitted !== null ? (
+             <div className="text-center animate-in zoom-in">
+                <CheckIcon size={100} className="text-emerald-500 mx-auto" />
+                <h2 className="text-3xl font-black text-white mt-4 uppercase">{t.sent}</h2>
+             </div>
+           ) : (
+             <div className="w-full max-w-sm space-y-6 animate-in slide-in-from-bottom-4">
+                {gameState.questStage === 1 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {t.days.map((day, idx) => (
+                      <button 
+                        key={day} 
+                        onClick={() => submitQuestAnswer(idx)}
+                        className="bg-white text-indigo-900 py-6 rounded-2xl font-black text-2xl active:scale-95 transition-all shadow-xl"
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {gameState.questStage === 2 && (
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full aspect-square bg-white text-indigo-900 rounded-[50px] flex flex-col items-center justify-center gap-4 shadow-2xl active:scale-95 transition-all"
+                  >
+                    <Camera size={80} />
+                    <span className="font-black text-xl">{t.questPhotoBtn}</span>
+                    <input type="file" ref={fileInputRef} accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+                  </button>
+                )}
 
-       {gameState.gameType === GameType.IMAGE_GEN && (
-          <div className="space-y-4 my-auto">
-             <h2 className="text-2xl font-black text-white text-center uppercase">{t.draw}: {gameState.artTheme}</h2>
-             <textarea value={imgPrompt} onChange={e => setImgPrompt(e.target.value)} placeholder={t.prompt} className="w-full bg-black/30 text-white p-4 rounded-2xl h-32" />
-             <button onClick={handleGenImage} disabled={isGen} className="w-full bg-indigo-600 py-4 rounded-2xl text-white font-black uppercase">{isGen ? '...' : t.create}</button>
-             {genImg && <img src={genImg} className="w-full rounded-2xl border-4 border-white" />}
+                {gameState.questStage === 3 && (
+                   <div className="space-y-4">
+                      <div className="bg-white/10 p-6 rounded-3xl flex items-center justify-center mb-4">
+                        <Calculator size={48} className="text-white" />
+                      </div>
+                      <input 
+                        type="number"
+                        value={questInput}
+                        onChange={e => setQuestInput(e.target.value)}
+                        placeholder="???"
+                        className="w-full bg-white/5 border-2 border-white/20 rounded-3xl px-8 py-6 text-white text-4xl font-black text-center focus:border-white outline-none"
+                      />
+                      <button 
+                        onClick={() => submitQuestAnswer(questInput)}
+                        className="w-full bg-white text-indigo-900 py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-all"
+                      >
+                        {t.questBtnSubmit}
+                      </button>
+                   </div>
+                )}
+
+                {gameState.questStage === 4 && (
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full bg-white text-indigo-900 py-10 rounded-[40px] flex flex-col items-center justify-center gap-4 shadow-2xl active:scale-95 transition-all"
+                  >
+                    <Upload size={80} />
+                    <span className="font-black text-xl">{t.questUploadBtn}</span>
+                    <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} className="hidden" />
+                  </button>
+                )}
+             </div>
+           )}
+        </div>
+      )}
+
+      {gameState.gameType === GameType.PUSH_IT && (
+        <div className="h-full flex flex-col items-center justify-center space-y-12">
+          {gameState.isCountdown ? (
+             <div className="text-center space-y-6 animate-in zoom-in">
+                <ClockIcon size={80} className="mx-auto text-indigo-400 animate-pulse" />
+                <h2 className="text-2xl font-black text-white uppercase">{t.countdown}</h2>
+                <div className="text-8xl font-black text-white">{gameState.countdownValue}</div>
+             </div>
+          ) : (
+            <>
+              <div className="text-center">
+                 <h2 className="text-3xl font-black text-white italic uppercase mb-2">{t.pushTitle}</h2>
+                 <div className="text-6xl font-black text-blue-400 font-mono">{pushCount}/50</div>
+              </div>
+              <button 
+                onClick={handlePush}
+                disabled={pushCount >= 50}
+                className={`w-64 h-64 bg-blue-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-all select-none border-8 border-white/20 ${pushCount >= 50 ? 'opacity-50' : ''}`}
+              >
+                <div className="text-white text-4xl font-black">{t.pushBtn}</div>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {gameState.gameType === GameType.SHAKE_IT && (
+        <div className="h-full flex flex-col items-center justify-center space-y-12">
+          <div className="text-center space-y-4">
+             <h2 className="text-5xl font-black text-white italic">{t.shakePhone}</h2>
           </div>
-       )}
+          <div className="w-48 h-48 bg-rose-500 rounded-full flex items-center justify-center shadow-2xl animate-pulse">
+            <PhoneIcon size={64} className="text-white" />
+          </div>
+        </div>
+      )}
+
+      {gameState.gameType === GameType.IMAGE_GEN && (
+        <div className="flex flex-col space-y-6">
+          <div className="bg-amber-500/10 border-2 border-amber-500/20 p-6 rounded-3xl">
+            <h2 className="text-2xl font-black text-white mb-2 flex items-center gap-2 italic"><ImgIcon className="text-amber-400" /> {t.aiArtBattle}</h2>
+            <div className="text-amber-400 font-black text-sm uppercase mb-1">{t.imgTheme} {gameState.artTheme}</div>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+            <textarea 
+              value={imagePrompt}
+              onChange={(e) => setImagePrompt(e.target.value)}
+              placeholder={t.imgPlaceholder}
+              className="w-full bg-transparent text-white text-lg font-bold placeholder:text-white/20 border-none outline-none resize-none h-20"
+            />
+          </div>
+
+          <button 
+            onClick={handleGenerateImage}
+            disabled={isGeneratingImage || !imagePrompt.trim()}
+            className="w-full bg-white text-indigo-950 py-4 rounded-2xl text-xl font-black shadow-xl disabled:opacity-50 flex items-center justify-center gap-2 transition-all active:scale-95"
+          >
+            {isGeneratingImage ? <LoaderIcon className="animate-spin" size={24} /> : <SparkIcon className="text-amber-500" size={24} />}
+            {isGeneratingImage ? t.magic : t.create}
+          </button>
+
+          {generatedImageUrl && !isGeneratingImage && (
+            <div className="space-y-4 mt-2 animate-in zoom-in">
+              <div className="relative aspect-square rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl">
+                <img src={generatedImageUrl} alt="Generated" className="w-full h-full object-cover" />
+                {isImageSent && <div className="absolute inset-0 bg-emerald-600/60 flex items-center justify-center text-white font-black text-2xl uppercase backdrop-blur-sm">
+                  {t.sent}
+                </div>}
+              </div>
+              {!isImageSent && (
+                <button 
+                  onClick={handleSendToScreen} 
+                  className="w-full bg-emerald-500 text-white py-5 rounded-2xl text-2xl font-black shadow-xl transition-all"
+                >
+                  {t.sendToScreen}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
