@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, onValue, update, push, get } from "firebase/database";
+import { getDatabase, ref, set, onValue, get, child } from "firebase/database";
 
+// ВАШИ РАБОЧИЕ КЛЮЧИ
 const firebaseConfig = {
   apiKey: "AIzaSyC-vmOaMUz_fBFjltcxp6RyNvyMmAmdqJ0",
   authDomain: "maybeu-live.firebaseapp.com",
@@ -16,66 +17,44 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 export const FirebaseService = {
-  // --- СОБЫТИЯ (Для HostDashboard) ---
-  // Когда ведущий меняет что-то, мы сохраняем это в облако
+  // Копируем активное событие в облако
   syncEvent: (event: any) => {
     if (!event) return;
-    // Сохраняем как "активное событие" для всех
     set(ref(db, 'currentEvent'), event);
   },
 
-  // --- ИГРА (Для QuizControl) ---
+  // Копируем состояние игры (вопрос, стадию) в облако
   syncGameState: (state: any) => {
-    set(ref(db, 'gameState'), { ...state, timestamp: Date.now() });
+    if (!state) return;
+    set(ref(db, 'gameState'), state);
   },
 
-  // --- ГОСТИ (Для GuestPortal) ---
-  // Гость ищет событие по коду
+  // Для Гостя: найти событие по коду (так как у гостя нет локальной базы)
   findEventByCode: async (code: string) => {
-    const snapshot = await get(ref(db, 'currentEvent'));
-    const event = snapshot.val();
-    if (event && event.code === code) return event;
+    try {
+      const snapshot = await get(ref(db, 'currentEvent'));
+      const event = snapshot.val();
+      if (event && event.code === code) return event;
+    } catch (e) {
+      console.error(e);
+    }
     return null;
   },
 
-  joinEvent: (guestName: string) => {
-    const id = guestName.replace(/[^a-zA-Z0-9]/g, '');
-    set(ref(db, `guests/${id}`), { name: guestName, online: true, timestamp: Date.now() });
-  },
-
-  // --- ЭКРАН (Для BigScreen) ---
+  // Для Гостя и Экрана: слушать изменения
   subscribeToEverything: (
-    onEvent: (e: any) => void, 
-    onGame: (g: any) => void, 
-    onGuests: (c: number) => void
+    onGame: (g: any) => void
   ) => {
-    onValue(ref(db, 'currentEvent'), (s) => onEvent(s.val()));
-    onValue(ref(db, 'gameState'), (s) => onGame(s.val()));
-    onValue(ref(db, 'guests'), (s) => onGuests(s.size));
+    const unsubGame = onValue(ref(db, 'gameState'), (s) => {
+        const val = s.val();
+        if (val) onGame(val);
+    });
+    return () => { unsubGame(); };
   },
 
-  // --- ИНТЕРАКТИВЫ ---
-  sendPush: (guestName: string, count: number) => {
-    update(ref(db, 'race'), { [guestName]: count });
-  },
-
-  subscribeToRace: (cb: (data: any) => void) => {
-    onValue(ref(db, 'race'), (s) => cb(s.val()));
-  },
-  
-  sendAnswer: (guestName: string, answerIdx: number) => {
-      push(ref(db, 'answers'), { guestName, answerIdx });
-  },
-  
-  subscribeToAnswers: (cb: (data: any) => void) => {
-      onValue(ref(db, 'answers'), (s) => cb(s.val()));
-  },
-
-  sendImage: (url: string, user: string) => {
-      push(ref(db, 'images'), { url, user });
-  },
-
-  subscribeToImages: (cb: (data: any) => void) => {
-      onValue(ref(db, 'images'), (s) => cb(s.val()));
+  // Регистрация действий
+  registerAction: (type: string, payload: any) => {
+    // Можно расширить для ответов, но пока хватит синхронизации состояния
+    set(ref(db, `actions/${type}`), payload);
   }
 };
