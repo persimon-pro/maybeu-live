@@ -84,6 +84,12 @@ const TRANSLATIONS = {
   }
 };
 
+useEffect(() => {
+    if (activeEvent && activeEvent.status === 'LIVE') {
+       FirebaseService.syncEvent(activeEvent);
+    }
+  }, [activeEvent]);
+
 const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) => {
   const [tab, setTab] = useState<'EVENTS' | 'GAMES' | 'CRM' | 'INFO' | 'TIMING'>('EVENTS');
   const [events, setEvents] = useState<LiveEvent[]>(() => {
