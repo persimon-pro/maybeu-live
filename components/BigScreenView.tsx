@@ -139,9 +139,11 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       setGameState((prev: any) => {
          const isNewStep = prev?.currentIdx !== gs?.currentIdx || prev?.questStage !== gs?.questStage || prev?.gameType !== gs?.gameType;
          if (isNewStep && gs) {
+            // Сброс финиша при смене режима
             if (prev?.gameType !== gs.gameType) {
               setGameFinished(false);
             }
+            // Для квизов завершение по индексу вопроса
             if (gs.gameType === GameType.QUIZ || gs.gameType === GameType.BELIEVE_NOT || gs.gameType === GameType.QUEST) {
               setGameFinished(gs.currentIdx >= (gs.questions?.length || 10));
             }
@@ -152,7 +154,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     return unsubGame;
   }, []);
 
-  // 3. Подписываемся на данные сессии
+  // 3. Подписываемся на данные сессии (ГЛАВНОЕ: СЛУШАЕМ КЛИКИ ГОСТЕЙ)
   useEffect(() => {
     if (activeEvent?.code) {
       const unsub = FirebaseService.subscribeToSessionData(activeEvent.code, (data) => {
@@ -161,16 +163,18 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
            setOnlineCount(Object.keys(data.registry).length);
          }
          
+         // --- ЛОГИКА ПОБЕДЫ В "ЖМИ" ---
          if (gameState?.gameType === GameType.PUSH_IT && data.race && !gameFinished && gameState?.isActive && !gameState?.isCountdown) {
+            // Находим того, у кого >= 50
             const winnerEntry = Object.entries(data.race).find(([_, count]) => Number(count) >= 50);
             if (winnerEntry) {
-              setGameFinished(true);
+              setGameFinished(true); // <--- ЭТО ПЕРЕКЛЮЧИТ ЭКРАН НА ПОБЕДИТЕЛЯ
             }
          }
       });
       return unsub;
     }
-  }, [activeEvent?.code, gameState?.gameType, gameFinished]);
+  }, [activeEvent?.code, gameState?.gameType, gameFinished, gameState?.isActive, gameState?.isCountdown]);
 
   const calculatePoints = (isCorrect: boolean, timeMs: number): number => {
     if (!isCorrect) return 0;
@@ -286,7 +290,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
           
           {activeEvent.status === 'LIVE' ? (
             <div className="bg-white p-8 rounded-[40px] shadow-2xl inline-block border-[12px] border-indigo-600/20 animate-in zoom-in duration-500">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu-live.vercel.app`} alt="QR" className="w-[300px] h-[300px]" />
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu.live/join/${activeEvent.code}`} alt="QR" className="w-[300px] h-[300px]" />
               <div className="mt-4 text-indigo-900 font-black text-xl uppercase tracking-widest">{t.joinOn} maybeu.live</div>
             </div>
           ) : (
