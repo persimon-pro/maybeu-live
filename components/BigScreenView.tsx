@@ -1,7 +1,7 @@
 import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LiveEvent, GameType, Language, QuizQuestion } from '../types';
-import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame, MonitorOff } from 'lucide-react';
+import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame, MonitorOff, Heart } from 'lucide-react';
 
 interface Props { 
   activeEvent: LiveEvent | null; 
@@ -57,7 +57,9 @@ const TRANSLATIONS = {
     questStage3Desc: 'Реши уравнение: (250 х 4 х 5 х 2) + 2000 - 500 - 250 - 16 - 1500 + 1500 + 1234 - 50 - 50 - 23',
     questStage4Title: 'МИЛЫЕ ЖИВОТНЫЕ',
     questStage4Desc: 'Найди и пришли фото любого милого животного!',
-    photoReceived: 'ФОТО ПОЛУЧЕНО'
+    photoReceived: 'ФОТО ПОЛУЧЕНО',
+    thanks: 'СПАСИБО ЗА ВНИМАНИЕ И ДО НОВЫХ ВСТРЕЧ!',
+    completed: 'ЭФИР ЗАВЕРШЕН'
   },
   en: {
     welcome: 'WELCOME',
@@ -107,7 +109,9 @@ const TRANSLATIONS = {
     questStage3Desc: 'Solve: (250 x 4 x 5 x 2) + 2000 - 500 - 250 - 16 - 1500 + 1500 + 1234 - 50 - 50 - 23',
     questStage4Title: 'CUTE ANIMALS',
     questStage4Desc: 'Find and send a photo of any cute animal!',
-    photoReceived: 'PHOTO RECEIVED'
+    photoReceived: 'PHOTO RECEIVED',
+    thanks: 'THANK YOU FOR WATCHING AND SEE YOU SOON!',
+    completed: 'EVENT COMPLETED'
   }
 };
 
@@ -276,6 +280,31 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
      );
   }
 
+  // --- СПЕЦИАЛЬНЫЙ ЭКРАН "ЭФИР ЗАВЕРШЕН" ---
+  if (activeEvent.status === 'COMPLETED') {
+    return (
+      <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden animate-in fade-in duration-1000">
+         <div className="absolute top-6 right-6 flex gap-2 z-50">
+           <button onClick={toggleFullscreen} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500"><Maximize2 size={24} /></button>
+         </div>
+         
+         <div className="relative z-10 max-w-5xl space-y-12">
+            <div className="w-32 h-2 bg-emerald-500 mx-auto rounded-full animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div>
+            <h1 className="text-7xl font-black text-white uppercase italic tracking-tighter leading-tight drop-shadow-2xl">
+              {t.thanks}
+            </h1>
+            <p className="text-2xl font-bold text-slate-500 uppercase tracking-[0.5em]">{t.completed}</p>
+         </div>
+         
+         {/* Background decoration */}
+         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/30 rounded-full blur-[100px] animate-pulse" style={{animationDelay: '1s'}}></div>
+         </div>
+      </div>
+    );
+  }
+
   // Lobby view before game starts
   if (!gameState || (!gameState.isActive && !gameFinished)) {
     return (
@@ -291,7 +320,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
           {activeEvent.status === 'LIVE' ? (
             <div className="bg-white p-8 rounded-[40px] shadow-2xl inline-block border-[12px] border-indigo-600/20 animate-in zoom-in duration-500">
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu-live.vercel.app/`} alt="QR" className="w-[300px] h-[300px]" />
-              <div className="mt-4 text-indigo-900 font-black text-xl uppercase tracking-widest">{t.joinOn}mc-live.maybeu.ru-</div>
+              <div className="mt-4 text-indigo-900 font-black text-xl uppercase tracking-widest">{t.joinOn} maybeu.ru</div>
             </div>
           ) : (
             <div className="py-20 animate-in fade-in duration-1000">
