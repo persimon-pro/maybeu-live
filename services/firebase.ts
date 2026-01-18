@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, onValue, get, child } from "firebase/database";
+import { getDatabase, ref, set, onValue, get, child, update, push } from "firebase/database";
 
-// ВАШИ РАБОЧИЕ КЛЮЧИ
 const firebaseConfig = {
   apiKey: "AIzaSyC-vmOaMUz_fBFjltcxp6RyNvyMmAmdqJ0",
   authDomain: "maybeu-live.firebaseapp.com",
@@ -17,44 +16,50 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 export const FirebaseService = {
-  // Копируем активное событие в облако
+  // Зеркалим событие (чтобы телефон его нашел)
   syncEvent: (event: any) => {
     if (!event) return;
-    set(ref(db, 'currentEvent'), event);
+    update(ref(db, 'currentEvent'), event);
   },
 
-  // Копируем состояние игры (вопрос, стадию) в облако
+  // Зеркалим состояние игры (вопросы, таймер)
   syncGameState: (state: any) => {
     if (!state) return;
-    set(ref(db, 'gameState'), state);
+    update(ref(db, 'gameState'), state);
   },
 
-  // Для Гостя: найти событие по коду (так как у гостя нет локальной базы)
+  // Для Гостя: поиск события в облаке
   findEventByCode: async (code: string) => {
     try {
       const snapshot = await get(ref(db, 'currentEvent'));
       const event = snapshot.val();
-      if (event && event.code === code) return event;
+      // Проверяем код (если совпадает - возвращаем)
+      if (event && event.code && event.code.toUpperCase() === code.toUpperCase()) {
+          return event;
+      }
     } catch (e) {
       console.error(e);
     }
     return null;
   },
 
-  // Для Гостя и Экрана: слушать изменения
-  subscribeToEverything: (
-    onGame: (g: any) => void
-  ) => {
-    const unsubGame = onValue(ref(db, 'gameState'), (s) => {
-        const val = s.val();
-        if (val) onGame(val);
+  // Подписка для Гостя и Экрана
+  subscribeToGame: (callback: (data: any) => void) => {
+    return onValue(ref(db, 'gameState'), (snapshot) => {
+      const val = snapshot.val();
+      if (val) callback(val);
     });
-    return () => { unsubGame(); };
   },
 
-  // Регистрация действий
-  registerAction: (type: string, payload: any) => {
-    // Можно расширить для ответов, но пока хватит синхронизации состояния
-    set(ref(db, `actions/${type}`), payload);
+  // Обратная связь: Гость отправляет ответы/картинки
+  sendAction: (type: string, data: any) => {
+     push(ref(db, `actions/${type}`), { ...data, timestamp: Date.now() });
+  },
+  
+  subscribeToActions: (type: string, callback: (data: any) => void) => {
+     return onValue(ref(db, `actions/${type}`), (snapshot) => {
+        const val = snapshot.val();
+        if (val) callback(Object.values(val));
+     });
   }
 };
