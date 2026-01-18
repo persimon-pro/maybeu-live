@@ -1,7 +1,7 @@
 import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LiveEvent, GameType, Language, QuizQuestion } from '../types';
-import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame } from 'lucide-react';
+import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame, MonitorOff } from 'lucide-react';
 
 interface Props { 
   activeEvent: LiveEvent | null; 
@@ -9,7 +9,6 @@ interface Props {
 }
 
 const TRANSLATIONS = {
-  // ... (Оставляем словарь переводов без изменений)
   ru: {
     welcome: 'ДОБРО ПОЖАЛОВАТЬ',
     joinOn: 'Заходи на',
@@ -48,6 +47,7 @@ const TRANSLATIONS = {
     getReady: 'ПРИГОТОВЬТЕСЬ...',
     countdown: 'ОТКРЫТИЕ ТРАССЫ ЧЕРЕЗ:',
     fullscreen: 'На весь экран',
+    clear: 'Сброс',
     wakeLockActive: 'Экран не погаснет',
     questStage1Title: 'МАШИНА ВРЕМЕНИ: 2099',
     questStage1Desc: 'На какой день недели придется {date} в 2099 году?',
@@ -97,6 +97,7 @@ const TRANSLATIONS = {
     getReady: 'GET READY...',
     countdown: 'TRACK OPENS IN:',
     fullscreen: 'Fullscreen',
+    clear: 'Reset',
     wakeLockActive: 'Wake lock active',
     questStage1Title: 'TIME MACHINE: 2099',
     questStage1Desc: 'What day of week is {date} in the year 2099?',
@@ -132,17 +133,15 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     return () => { unsub(); clearInterval(pulse); };
   }, []);
 
-  // 2. Подписываемся на данные игры и сессии
+  // 2. Подписываемся на данные игры
   useEffect(() => {
     const unsubGame = FirebaseService.subscribeToGame((gs) => {
       setGameState((prev: any) => {
          const isNewStep = prev?.currentIdx !== gs?.currentIdx || prev?.questStage !== gs?.questStage || prev?.gameType !== gs?.gameType;
          if (isNewStep && gs) {
-            // Сброс финиша при смене режима
             if (prev?.gameType !== gs.gameType) {
               setGameFinished(false);
             }
-            // Логика авто-завершения
             if (gs.gameType === GameType.QUIZ || gs.gameType === GameType.BELIEVE_NOT || gs.gameType === GameType.QUEST) {
               setGameFinished(gs.currentIdx >= (gs.questions?.length || 10));
             }
@@ -153,7 +152,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     return unsubGame;
   }, []);
 
-  // 3. Подписываемся на данные сессии (ответы, картинки, реестр)
+  // 3. Подписываемся на данные сессии
   useEffect(() => {
     if (activeEvent?.code) {
       const unsub = FirebaseService.subscribeToSessionData(activeEvent.code, (data) => {
@@ -162,7 +161,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
            setOnlineCount(Object.keys(data.registry).length);
          }
          
-         // Проверка победителя в гонке кликов
          if (gameState?.gameType === GameType.PUSH_IT && data.race && !gameFinished && gameState?.isActive && !gameState?.isCountdown) {
             const winnerEntry = Object.entries(data.race).find(([_, count]) => Number(count) >= 50);
             if (winnerEntry) {
@@ -174,7 +172,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     }
   }, [activeEvent?.code, gameState?.gameType, gameFinished]);
 
-  // Scoring Logic
   const calculatePoints = (isCorrect: boolean, timeMs: number): number => {
     if (!isCorrect) return 0;
     const seconds = timeMs / 1000;
@@ -182,7 +179,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     return Math.round(100 + speedBonus);
   };
 
-  // Leaders logic (From Firebase Data)
   const quizLeaders = useMemo(() => {
     if (!activeEvent || !gameState?.questions || !sessionData.quiz_answers) return [];
     const scores: Record<string, number> = {};
@@ -204,7 +200,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .slice(0, 5);
   }, [gameFinished, sessionData.quiz_answers, gameState?.questions]);
 
-  // Quest Results logic
   const questResults = useMemo(() => {
     if (!activeEvent || !sessionData.quest_responses) return [];
     const participants: Record<string, { score: number }> = {};
@@ -213,11 +208,9 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     const correctMathResult = "12345"; 
 
     Object.entries(sessionData.quest_responses).forEach(([stage, responses]: [string, any]) => {
-      // responses is object with keys or array depending on push implementation, normalizing to array
       const responseList = Object.values(responses);
       responseList.forEach((res: any) => {
         if (!participants[res.name]) participants[res.name] = { score: 0 };
-        
         let isCorrect = false;
         const s = parseInt(stage);
         
@@ -237,7 +230,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .slice(0, 5);
   }, [gameFinished, sessionData.quest_responses]);
 
-  // Push results
   const pushResults = useMemo(() => {
     if (!sessionData.race) return [];
     return Object.entries(sessionData.race)
@@ -246,7 +238,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .slice(0, 5);
   }, [sessionData.race]);
 
-  // Helper getters for UI
   const getGuestImages = () => {
      if (!sessionData.images) return [];
      return Object.values(sessionData.images);
@@ -263,10 +254,18 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     else document.exitFullscreen();
   };
 
+  const handleClearScreen = () => {
+    if (activeEvent?.code) {
+      FirebaseService.resetGameData(activeEvent.code);
+    }
+  };
+
   if (!activeEvent) {
      return (
         <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden">
-           <button onClick={toggleFullscreen} className="absolute top-6 right-6 p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500 z-50"><Maximize2 size={24} /></button>
+           <div className="absolute top-6 right-6 flex gap-2 z-50">
+             <button onClick={toggleFullscreen} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500"><Maximize2 size={24} /></button>
+           </div>
            <h1 className="text-4xl font-black text-slate-800 tracking-[1em] mb-4 uppercase italic drop-shadow-lg">{t.standby}</h1>
            <div className="w-24 h-1 bg-slate-900 rounded-full animate-pulse"></div>
         </div>
@@ -277,13 +276,17 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
   if (!gameState || (!gameState.isActive && !gameFinished)) {
     return (
       <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden">
-        <button onClick={toggleFullscreen} className="absolute top-6 right-6 p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500 z-50"><Maximize2 size={24} /></button>
+        <div className="absolute top-6 right-6 flex gap-2 z-50">
+           <button onClick={handleClearScreen} className="p-4 bg-white/5 hover:bg-rose-600/20 hover:text-rose-500 rounded-2xl text-slate-500 transition-all" title={t.clear}><MonitorOff size={24} /></button>
+           <button onClick={toggleFullscreen} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500"><Maximize2 size={24} /></button>
+        </div>
+        
         <div className="relative z-10 space-y-12">
           <h1 className="text-8xl font-black text-white tracking-tighter uppercase italic">{activeEvent.name}</h1>
           
           {activeEvent.status === 'LIVE' ? (
             <div className="bg-white p-8 rounded-[40px] shadow-2xl inline-block border-[12px] border-indigo-600/20 animate-in zoom-in duration-500">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://https://maybeu-live.vercel.app/`} alt="QR" className="w-[300px] h-[300px]" />
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu-live.vercel.app`} alt="QR" className="w-[300px] h-[300px]" />
               <div className="mt-4 text-indigo-900 font-black text-xl uppercase tracking-widest">{t.joinOn} maybeu.live</div>
             </div>
           ) : (
@@ -323,7 +326,10 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
             )}
           </div>
         </div>
-        <button onClick={toggleFullscreen} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500"><Maximize2 size={24} /></button>
+        <div className="flex gap-2">
+           <button onClick={handleClearScreen} className="p-4 bg-white/5 hover:bg-rose-600/20 hover:text-rose-500 rounded-2xl text-slate-500 transition-all" title={t.clear}><MonitorOff size={24} /></button>
+           <button onClick={toggleFullscreen} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500"><Maximize2 size={24} /></button>
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col justify-center w-full relative z-10 overflow-hidden">
