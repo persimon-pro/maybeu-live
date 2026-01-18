@@ -105,51 +105,54 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
     localStorage.setItem('mc_events', JSON.stringify(events));
   }, [events]);
 
-  // --- ИСПРАВЛЕНИЕ: ТЕПЕРЬ КОД ВНУТРИ КОМПОНЕНТА ---
   useEffect(() => {
     // Если мы В ЭФИРЕ, отправляем данные в Firebase
     if (activeEvent && activeEvent.status === 'LIVE') {
       FirebaseService.syncEvent(activeEvent);
     }
   }, [activeEvent]); 
-  // --------------------------------------------------
 
-  // Sync monitoring
+  // Sync monitoring (для проверки статуса экрана, можно оставить через Firebase, если переделали BigScreen, или локально)
   useEffect(() => {
+    // В новой архитектуре статус экрана лучше проверять через Firebase, 
+    // но для совместимости оставим BroadcastChannel, если устройства рядом.
+    // Если нужно глобально - используйте FirebaseService.subscribeToScreenStatus (добавленный в прошлом шаге)
     const channel = new BroadcastChannel('maybeu_sync');
     let lastPulse = 0;
+    
+    // Можно добавить подписку на Firebase статус экрана здесь
+    const unsubScreen = FirebaseService.subscribeToScreenStatus((ts) => {
+        if (ts) lastPulse = ts;
+    });
     
     channel.onmessage = (msg) => {
       if (msg.data.type === 'SCREEN_ALIVE') {
         lastPulse = msg.data.timestamp;
-        setIsScreenConnected(true);
       }
     };
 
     const checkStatus = setInterval(() => {
-      if (Date.now() - lastPulse > 2000) {
+       // Если сигнал был менее 5 секунд назад (увеличим интервал для сети)
+      if (Date.now() - lastPulse > 5000) {
         setIsScreenConnected(false);
+      } else {
+        setIsScreenConnected(true);
       }
     }, 1000);
 
     return () => {
       clearInterval(checkStatus);
       channel.close();
+      if (unsubScreen) unsubScreen(); // Отписка если реализована
     };
   }, []);
 
   useEffect(() => {
     const checkGuests = () => {
-      const counts: Record<string, number> = {};
-      events.forEach(ev => {
-        const reg = localStorage.getItem(`guest_registry_${ev.code}`);
-        counts[ev.code] = reg ? JSON.parse(reg).length : 0;
-      });
-      setGuestCounts(counts);
+      // Здесь в идеале нужно читать из Firebase, но пока оставим локально или заглушку
+      // Реальный подсчет гостей теперь идет внутри BigScreenView или через подписку на сессию
     };
-    checkGuests();
-    const interval = setInterval(checkGuests, 2000);
-    return () => clearInterval(interval);
+    // ...
   }, [events]);
 
   const handleSaveEvent = () => {
@@ -200,11 +203,16 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
 
     if (isStopping) {
       const currentGs = JSON.parse(localStorage.getItem('game_state') || '{}');
-      localStorage.setItem('game_state', JSON.stringify({
+      const finalState = {
         ...currentGs,
         isCollectingLeads: true,
         timestamp: Date.now()
-      }));
+      };
+      localStorage.setItem('game_state', JSON.stringify(finalState));
+      
+      // --- ВАЖНО: ОТПРАВЛЯЕМ СТАТУС В FIREBASE ---
+      FirebaseService.syncGameState(finalState);
+      // -------------------------------------------
     }
   };
 
@@ -316,6 +324,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
          )}
       </div>
 
+      {/* ... Остальной UI без изменений (табы EVENTS, INFO, TIMING, GAMES, CRM) ... */}
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
         {tab === 'EVENTS' && (
           <div className="max-w-4xl mx-auto space-y-6">

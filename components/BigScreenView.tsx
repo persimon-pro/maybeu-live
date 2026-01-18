@@ -1,4 +1,4 @@
-
+import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LiveEvent, GameType, Language, QuizQuestion } from '../types';
 import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame } from 'lucide-react';
@@ -9,6 +9,7 @@ interface Props {
 }
 
 const TRANSLATIONS = {
+  // ... (Оставляем словарь переводов без изменений)
   ru: {
     welcome: 'ДОБРО ПОЖАЛОВАТЬ',
     joinOn: 'Заходи на',
@@ -112,96 +113,68 @@ const TRANSLATIONS = {
 const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
   const [gameState, setGameState] = useState<any>(null);
   const [activeEvent, setActiveEvent] = useState<LiveEvent | null>(initialEvent);
-  const [timeLeft, setTimeLeft] = useState(15);
   const [onlineCount, setOnlineCount] = useState(0);
   const [gameFinished, setGameFinished] = useState(false);
-  const [questStageResponses, setQuestStageResponses] = useState<any[]>([]);
-  const [guestImages, setGuestImages] = useState<any[]>([]);
-  const [raceProgress, setRaceProgress] = useState<Record<string, number>>({});
+  const [sessionData, setSessionData] = useState<any>({});
   
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const QUIZ_DURATION = 15;
   const t = TRANSLATIONS[lang];
 
+  // 1. Подписываемся на текущее событие
   useEffect(() => {
-    const channel = new BroadcastChannel('maybeu_sync');
-    channel.onmessage = (msg) => {
-      if (msg.data.type === 'FORCE_RESET') {
-        setGameState(null);
-        setActiveEvent(null);
-        setGameFinished(false);
-      }
-    };
+    const unsub = FirebaseService.subscribeToEvent((evt) => {
+      setActiveEvent(evt);
+    });
+    // Отправляем пинг, что экран жив
     const pulse = setInterval(() => {
-      channel.postMessage({ type: 'SCREEN_ALIVE', timestamp: Date.now() });
-    }, 1000);
-    return () => { clearInterval(pulse); channel.close(); };
+      FirebaseService.sendScreenHeartbeat();
+    }, 2000);
+    return () => { unsub(); clearInterval(pulse); };
   }, []);
 
+  // 2. Подписываемся на данные игры и сессии
   useEffect(() => {
-    const checkAll = () => {
-      const storedEvent = localStorage.getItem('active_event');
-      if (!storedEvent) {
-        setActiveEvent(null);
-        setGameState(null);
-        return;
-      }
-      const parsedEvent = JSON.parse(storedEvent);
-      setActiveEvent(parsedEvent);
+    const unsubGame = FirebaseService.subscribeToGame((gs) => {
+      setGameState((prev: any) => {
+         const isNewStep = prev?.currentIdx !== gs?.currentIdx || prev?.questStage !== gs?.questStage || prev?.gameType !== gs?.gameType;
+         if (isNewStep && gs) {
+            // Сброс финиша при смене режима
+            if (prev?.gameType !== gs.gameType) {
+              setGameFinished(false);
+            }
+            // Логика авто-завершения
+            if (gs.gameType === GameType.QUIZ || gs.gameType === GameType.BELIEVE_NOT || gs.gameType === GameType.QUEST) {
+              setGameFinished(gs.currentIdx >= (gs.questions?.length || 10));
+            }
+         }
+         return gs;
+      });
+    });
+    return unsubGame;
+  }, []);
 
-      const storedGame = localStorage.getItem('game_state');
-      if (storedGame) {
-        const parsed = JSON.parse(storedGame);
-        setGameState(prev => {
-           const isNewStep = prev?.currentIdx !== parsed.currentIdx || prev?.questStage !== parsed.questStage || prev?.gameType !== parsed.gameType;
-           if (isNewStep) {
-              setTimeLeft(QUIZ_DURATION);
-              // Сбрасываем состояние финиша при смене режима игры
-              if (prev?.gameType !== parsed.gameType) {
-                setGameFinished(false);
-              }
-              // Квизы, Верю/Не верю и Квесты имеют условие завершения через currentIdx
-              if (parsed.gameType === GameType.QUIZ || parsed.gameType === GameType.BELIEVE_NOT || parsed.gameType === GameType.QUEST) {
-                setGameFinished(parsed.currentIdx >= (parsed.questions?.length || 10));
-              }
-           }
-           return parsed;
-        });
-      } else {
-        setGameState(null);
-      }
-
-      if (parsedEvent) {
-        const reg = localStorage.getItem(`guest_registry_${parsedEvent.code}`);
-        if (reg) setOnlineCount(JSON.parse(reg).length);
-
-        if (gameState?.gameType === GameType.QUEST) {
-          const allResponses = JSON.parse(localStorage.getItem(`quest_responses_${parsedEvent.code}`) || '{}');
-          setQuestStageResponses(allResponses[gameState.questStage] || []);
-        }
-        if (gameState?.gameType === GameType.IMAGE_GEN) {
-          setGuestImages(JSON.parse(localStorage.getItem('guest_images') || '[]'));
-        }
-        if (gameState?.gameType === GameType.PUSH_IT) {
-          const progress = JSON.parse(localStorage.getItem('race_progress') || '{}');
-          setRaceProgress(progress);
-          
-          // Проверка победителя в реальном времени: кто первый набрал 50
-          if (!gameFinished && gameState?.isActive && !gameState?.isCountdown) {
-            const winnerEntry = Object.entries(progress).find(([_, count]) => Number(count) >= 50);
+  // 3. Подписываемся на данные сессии (ответы, картинки, реестр)
+  useEffect(() => {
+    if (activeEvent?.code) {
+      const unsub = FirebaseService.subscribeToSessionData(activeEvent.code, (data) => {
+         setSessionData(data || {});
+         if (data.registry) {
+           setOnlineCount(Object.keys(data.registry).length);
+         }
+         
+         // Проверка победителя в гонке кликов
+         if (gameState?.gameType === GameType.PUSH_IT && data.race && !gameFinished && gameState?.isActive && !gameState?.isCountdown) {
+            const winnerEntry = Object.entries(data.race).find(([_, count]) => Number(count) >= 50);
             if (winnerEntry) {
               setGameFinished(true);
             }
-          }
-        }
-      }
-    };
-    const storageInterval = setInterval(checkAll, 500); 
-    return () => clearInterval(storageInterval);
-  }, [gameState?.gameType, gameState?.questStage, gameFinished, gameState?.isActive, gameState?.isCountdown]);
+         }
+      });
+      return unsub;
+    }
+  }, [activeEvent?.code, gameState?.gameType, gameFinished]);
 
-  // Scoring Logic: 100 base + speed bonus (100 - seconds * 10)
+  // Scoring Logic
   const calculatePoints = (isCorrect: boolean, timeMs: number): number => {
     if (!isCorrect) return 0;
     const seconds = timeMs / 1000;
@@ -209,19 +182,18 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     return Math.round(100 + speedBonus);
   };
 
-  // Leaders logic
+  // Leaders logic (From Firebase Data)
   const quizLeaders = useMemo(() => {
-    if (!activeEvent || !gameState?.questions) return [];
-    const allAnswers = JSON.parse(localStorage.getItem(`quiz_answers_${activeEvent.code}`) || '{}');
+    if (!activeEvent || !gameState?.questions || !sessionData.quiz_answers) return [];
     const scores: Record<string, number> = {};
 
-    Object.values(allAnswers).forEach((guestAnswers: any) => {
+    Object.entries(sessionData.quiz_answers).forEach(([guestName, guestAnswers]: [string, any]) => {
       Object.entries(guestAnswers).forEach(([qIdx, ans]: [string, any]) => {
         const question = gameState.questions[parseInt(qIdx)];
         if (question) {
           const isCorrect = ans.value === question.correctAnswerIndex;
           const points = calculatePoints(isCorrect, ans.timeTaken);
-          scores[ans.name] = (scores[ans.name] || 0) + points;
+          scores[guestName] = (scores[guestName] || 0) + points;
         }
       });
     });
@@ -230,20 +202,20 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .map(([name, score]) => ({ name, score }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [gameFinished, activeEvent?.code, gameState?.questions]);
+  }, [gameFinished, sessionData.quiz_answers, gameState?.questions]);
 
   // Quest Results logic
   const questResults = useMemo(() => {
-    if (!activeEvent) return [];
-    const allResponses = JSON.parse(localStorage.getItem(`quest_responses_${activeEvent.code}`) || '{}');
+    if (!activeEvent || !sessionData.quest_responses) return [];
     const participants: Record<string, { score: number }> = {};
-    
     const now = new Date();
     const correctDay2099 = new Date(2099, now.getMonth(), now.getDate()).getDay();
-    const correctMathResult = "12345"; // Значение для заглушки или теста
+    const correctMathResult = "12345"; 
 
-    Object.entries(allResponses).forEach(([stage, responses]: [string, any]) => {
-      responses.forEach((res: any) => {
+    Object.entries(sessionData.quest_responses).forEach(([stage, responses]: [string, any]) => {
+      // responses is object with keys or array depending on push implementation, normalizing to array
+      const responseList = Object.values(responses);
+      responseList.forEach((res: any) => {
         if (!participants[res.name]) participants[res.name] = { score: 0 };
         
         let isCorrect = false;
@@ -263,15 +235,28 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .map(([name, data]) => ({ name, score: data.score }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [gameFinished, activeEvent?.code]);
+  }, [gameFinished, sessionData.quest_responses]);
 
-  // Push results for the podium
+  // Push results
   const pushResults = useMemo(() => {
-    return Object.entries(raceProgress)
+    if (!sessionData.race) return [];
+    return Object.entries(sessionData.race)
       .map(([name, count]) => ({ name, score: Number(count) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [raceProgress]);
+  }, [sessionData.race]);
+
+  // Helper getters for UI
+  const getGuestImages = () => {
+     if (!sessionData.images) return [];
+     return Object.values(sessionData.images);
+  };
+  
+  const getQuestResponses = () => {
+     if (!sessionData.quest_responses || !gameState) return [];
+     const responses = sessionData.quest_responses[gameState.questStage] || {};
+     return Object.values(responses);
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) containerRef.current?.requestFullscreen();
@@ -399,16 +384,16 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                       <h1 className="text-8xl font-black text-white italic animate-bounce">{t.pushTitle}</h1>
                     </div>
                     <div className="space-y-6">
-                      {(Object.entries(raceProgress) as [string, number][]).sort((a, b) => Number(b[1]) - Number(a[1])).slice(0, 5).map(([name, count], i) => (
+                      {pushResults.slice(0, 5).map(({name, score}, i) => (
                         <div key={name} className="space-y-2">
                           <div className="flex justify-between items-end px-2">
                             <span className="text-2xl font-black text-white uppercase italic">{name}</span>
-                            <span className="text-2xl font-mono text-indigo-400">{count}/50</span>
+                            <span className="text-2xl font-mono text-indigo-400">{score}/50</span>
                           </div>
                           <div className="h-8 bg-slate-900 rounded-full border-2 border-slate-800 overflow-hidden shadow-inner">
                             <div 
                               className={`h-full transition-all duration-300 rounded-full shadow-lg ${i === 0 ? 'bg-gradient-to-r from-amber-500 to-rose-500 animate-pulse' : 'bg-indigo-600'}`}
-                              style={{ width: `${(Number(count) / 50) * 100}%` }}
+                              style={{ width: `${(score / 50) * 100}%` }}
                             />
                           </div>
                         </div>
@@ -426,7 +411,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                   <h1 className="text-7xl font-black text-white italic uppercase tracking-tighter">{gameState.artTheme}</h1>
                 </div>
                 <div className="flex-1 grid grid-cols-4 gap-6 p-4">
-                   {guestImages.slice(-8).reverse().map((img, i) => (
+                   {getGuestImages().slice(-8).reverse().map((img: any, i: number) => (
                      <div key={i} className="aspect-square rounded-[40px] overflow-hidden border-8 border-slate-900 shadow-2xl transform rotate-1 hover:rotate-0 transition-transform bg-slate-900 group relative">
                         <img src={img.url} className="w-full h-full object-cover" alt="Art" />
                         <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-2xl">
@@ -454,7 +439,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                  </div>
 
                  <div className="flex-1 grid grid-cols-4 gap-6 auto-rows-max overflow-y-auto">
-                    {questStageResponses.slice(-12).reverse().map((res, i) => (
+                    {getQuestResponses().slice(-12).reverse().map((res: any, i: number) => (
                       <div key={i} className="bg-slate-900 border border-slate-800 p-4 rounded-3xl animate-in zoom-in overflow-hidden shadow-xl">
                         {res.isImage ? (
                           <div className="aspect-square rounded-2xl mb-3 overflow-hidden border-2 border-emerald-500/20 bg-slate-950">
