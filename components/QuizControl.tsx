@@ -1,7 +1,7 @@
 import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveEvent, GameType, QuizQuestion, Language } from '../types';
-import { Zap, Play, RotateCcw, Award, Plus, Trash2, Cpu, PlayCircle, ImageIcon, MousePointer2, HelpCircle, PlusCircle, List, CheckCircle2, XCircle, Rocket, MonitorOff, Edit2, Save, X, Check, Clock } from 'lucide-react';
+import { Zap, Play, RotateCcw, Award, Plus, Trash2, Cpu, PlayCircle, ImageIcon, MousePointer2, HelpCircle, PlusCircle, List, CheckCircle2, XCircle, Rocket, MonitorOff, Edit2, Save, X, Check, Clock, Eye } from 'lucide-react';
 import { generateQuizQuestions, generateBelieveNotQuestions } from '../services/geminiService';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 }
 
 const TRANSLATIONS = {
+  // ... (Оставляем переводы без изменений, они подтянутся из контекста)
   ru: {
     panel: 'Панель управления Live',
     event: 'Событие',
@@ -66,7 +67,8 @@ const TRANSLATIONS = {
     questFinal: 'ПОДВЕСТИ ИТОГИ (ФИНАЛ)',
     clearScreen: 'ОЧИСТИТЬ ЭКРАН',
     edit: 'Редактировать',
-    save: 'Сохранить'
+    save: 'Сохранить',
+    reveal: 'ПОКАЗАТЬ ОТВЕТ'
   },
   en: {
     panel: 'Live Control Center',
@@ -124,7 +126,8 @@ const TRANSLATIONS = {
     questFinal: 'SHOW FINAL RESULTS',
     clearScreen: 'CLEAR SCREEN',
     edit: 'Edit',
-    save: 'Save'
+    save: 'Save',
+    reveal: 'REVEAL ANSWER'
   }
 };
 
@@ -135,7 +138,14 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
   const [questStage, setQuestStage] = useState<number>(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  
+  // Новое состояние: показан ли правильный ответ
+  const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [answersCount, setAnswersCount] = useState(0);
+
   const countdownInterval = useRef<any>(null);
+  const autoNextTimeout = useRef<any>(null);
 
   // Editing state
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -159,6 +169,32 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     setQuestions(activeEvent.questions || []);
   }, [activeEvent]);
 
+  // СЛЕЖИМ ЗА ОТВЕТАМИ ГОСТЕЙ
+  useEffect(() => {
+    if ((gameMode === GameType.QUIZ || gameMode === GameType.BELIEVE_NOT) && currentIdx >= 0) {
+      const unsub = FirebaseService.subscribeToSessionData(activeEvent.code, (data) => {
+        const totalGuests = data.registry ? Object.keys(data.registry).length : 0;
+        setOnlineCount(totalGuests);
+
+        // Считаем ответы на ТЕКУЩИЙ вопрос
+        let currentAnswers = 0;
+        if (data.quiz_answers) {
+           // Проходимся по всем пользователям
+           Object.values(data.quiz_answers).forEach((userAns: any) => {
+              if (userAns && userAns[currentIdx]) currentAnswers++;
+           });
+        }
+        setAnswersCount(currentAnswers);
+
+        // АВТОМАТИКА: Если все ответили и ответ еще не показан
+        if (totalGuests > 0 && currentAnswers >= totalGuests && !isAnswerRevealed) {
+           handleRevealAndNext();
+        }
+      });
+      return unsub;
+    }
+  }, [activeEvent.code, currentIdx, gameMode, isAnswerRevealed]);
+
   const saveQuestionsToFirebase = (newQuestions: QuizQuestion[]) => {
     setQuestions(newQuestions); 
     FirebaseService.saveEventToDB({
@@ -177,14 +213,16 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       countdownValue: countdown,
       questions,
       artTheme,
+      isAnswerRevealed, // Отправляем состояние "Показан ответ" всем
       timestamp: Date.now()
     });
-  }, [gameMode, currentIdx, questStage, questions, artTheme, countdown]);
+  }, [gameMode, currentIdx, questStage, questions, artTheme, countdown, isAnswerRevealed]);
 
   const handleClearScreen = () => {
     setCurrentIdx(-1);
     setCountdown(null);
     setQuestStage(1);
+    setIsAnswerRevealed(false);
     FirebaseService.resetGameData(activeEvent.code);
   };
 
@@ -195,15 +233,14 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     }
     if (currentIdx === -1) {
       setCurrentIdx(0);
+      setIsAnswerRevealed(false);
     }
   };
 
   const startPushCountdown = () => {
-    FirebaseService.resetGameData(activeEvent.code); // Сброс перед гонкой
+    FirebaseService.resetGameData(activeEvent.code);
     setCountdown(10);
-    
     if (countdownInterval.current) clearInterval(countdownInterval.current);
-    
     countdownInterval.current = setInterval(() => {
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
@@ -216,22 +253,50 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     }, 1000);
   };
 
-  const handleNextQuestion = () => {
+  // Логика кнопки "ДАЛЕЕ"
+  const handleNextClick = () => {
+    // Если ответ еще не показан - показываем его (без автоперехода)
+    if (!isAnswerRevealed && (gameMode === GameType.QUIZ || gameMode === GameType.BELIEVE_NOT)) {
+      setIsAnswerRevealed(true);
+    } else {
+      // Если уже показан или это не квиз - идем к следующему вопросу
+      forceNextQuestion();
+    }
+  };
+
+  // Автоматическая цепочка: Показать ответ -> Подождать 4 сек -> Следующий вопрос
+  const handleRevealAndNext = () => {
+    setIsAnswerRevealed(true);
+    
+    if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
+    
+    autoNextTimeout.current = setTimeout(() => {
+       // Проверяем, что мы все еще на том же вопросе (чтобы не перескочить дважды)
+       forceNextQuestion();
+    }, 4000); // 4 секунды задержка
+  };
+
+  const forceNextQuestion = () => {
+    if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
+    
+    setIsAnswerRevealed(false); // Скрываем подсветку для нового вопроса
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(prev => prev + 1);
     } else {
+      // Финиш
       setCurrentIdx(questions.length);
     }
   };
 
   const handleFinishGame = () => {
-    if (isQuizType || gameMode === GameType.QUEST) {
+    if (gameMode === GameType.QUIZ || gameMode === GameType.BELIEVE_NOT || gameMode === GameType.QUEST) {
       setCurrentIdx(questions.length + 10); 
     } else {
       setCurrentIdx(-1);
     }
   };
 
+  // ... (Остальные методы генерации и редактирования без изменений) ...
   const handleGenerateQuestions = async () => {
     setIsGenerating(true);
     const theme = aiTopic || (activeEvent.type === 'WEDDING' ? (lang === 'ru' ? 'Свадьба' : 'Wedding') : (lang === 'ru' ? 'Вечеринка' : 'Party'));
@@ -314,6 +379,7 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       </div>
 
       <div className={`grid grid-cols-1 ${isQuizType ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-8`}>
+        {/* ... (Левая колонка с настройками - без изменений) ... */}
         <div className={`${isQuizType ? 'lg:col-span-2' : ''} space-y-6`}>
           {isQuizType && (
             <div className="space-y-6">
@@ -492,7 +558,7 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
                      ) : (
                        <div className="flex gap-4">
                           <button onClick={() => setCurrentIdx(prev => Math.max(0, prev - 1))} className="p-4 bg-slate-800 rounded-2xl text-white hover:bg-slate-700"><RotateCcw /></button>
-                          <button onClick={handleNextQuestion} className="px-10 py-4 bg-emerald-600 rounded-2xl text-white font-black text-lg shadow-xl shadow-emerald-600/20">{t.next}</button>
+                          <button onClick={handleNextClick} className="px-10 py-4 bg-emerald-600 rounded-2xl text-white font-black text-lg shadow-xl shadow-emerald-600/20">{t.next}</button>
                        </div>
                      )}
                      <button onClick={handleFinishGame} className="text-rose-500 font-black uppercase tracking-widest text-xs hover:underline">{t.gameEnd}</button>
@@ -504,9 +570,19 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
           {isQuizType && isGameActive && (
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-6">
                <div className="w-full flex flex-col items-center gap-6">
+                  {/* Счетчик ответивших */}
+                  <div className="flex items-center gap-2 bg-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase text-indigo-400">
+                     <Users size={14} /> Ответили: {answersCount} / {onlineCount}
+                  </div>
+
                   <div className="flex gap-4">
                      <button onClick={() => setCurrentIdx(prev => Math.max(0, prev - 1))} className="p-4 bg-slate-800 rounded-2xl text-white hover:bg-slate-700"><RotateCcw /></button>
-                     <button onClick={handleNextQuestion} className="px-10 py-4 bg-emerald-600 rounded-2xl text-white font-black text-lg shadow-xl shadow-emerald-600/20">{t.next}</button>
+                     <button 
+                       onClick={handleNextClick} 
+                       className={`px-10 py-4 rounded-2xl text-white font-black text-lg shadow-xl transition-all ${isAnswerRevealed ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500'}`}
+                     >
+                       {isAnswerRevealed ? t.next : t.reveal}
+                     </button>
                   </div>
                   <button onClick={handleFinishGame} className="text-rose-500 font-black uppercase tracking-widest text-xs hover:underline">{t.gameEnd}</button>
                </div>
@@ -537,6 +613,7 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
                       <div key={q.id || i} className={`p-4 rounded-xl border transition-all flex flex-col gap-3 group ${currentIdx === i ? 'bg-indigo-600/10 border-indigo-500 shadow-lg' : 'bg-slate-950/30 border-slate-800'}`}>
                         {editingIdx === i ? (
                           <div className="space-y-3 animate-in fade-in duration-200">
+                            {/* ... (Форма редактирования без изменений) ... */}
                             <input 
                               value={editQuestionText} 
                               onChange={e => setEditQuestionText(e.target.value)}

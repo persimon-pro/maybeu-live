@@ -402,7 +402,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
           </div>
         ) : (
           <>
-            {(gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && gameState.questions && (
+{(gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && gameState.questions && (
               <div className="max-w-6xl mx-auto w-full space-y-12">
                 <div className="bg-slate-900/50 backdrop-blur-xl p-12 rounded-[60px] border-4 border-white/10 shadow-2xl">
                   <h1 className="text-6xl font-black text-white text-center leading-tight tracking-tight italic">
@@ -410,12 +410,25 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                   </h1>
                 </div>
                 <div className={`grid gap-8 ${gameState.gameType === GameType.BELIEVE_NOT ? 'grid-cols-2' : 'grid-cols-2'}`}>
-                  {gameState.questions[gameState.currentIdx]?.options.map((opt: string, i: number) => (
-                    <div key={i} className="bg-slate-900 border-2 border-slate-800 p-8 rounded-[40px] flex items-center gap-6 shadow-xl relative overflow-hidden group">
-                      <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-3xl font-black text-indigo-400">{String.fromCharCode(65 + i)}</div>
-                      <span className="text-4xl font-bold text-white uppercase">{opt}</span>
-                    </div>
-                  ))}
+                  {gameState.questions[gameState.currentIdx]?.options.map((opt: string, i: number) => {
+                    const isRevealed = gameState.isAnswerRevealed;
+                    const isCorrect = i === gameState.questions[gameState.currentIdx]?.correctAnswerIndex;
+                    
+                    let cardClass = 'bg-slate-900 border-slate-800 text-white';
+                    if (isRevealed) {
+                        if (isCorrect) cardClass = 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_50px_rgba(16,185,129,0.6)] scale-105 z-10';
+                        else cardClass = 'bg-slate-900/30 border-slate-800/30 text-slate-600';
+                    }
+
+                    return (
+                      <div key={i} className={`${cardClass} border-2 p-8 rounded-[40px] flex items-center gap-6 shadow-xl relative overflow-hidden transition-all duration-500`}>
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-black ${isRevealed && isCorrect ? 'bg-white text-emerald-600' : 'bg-white/10 text-indigo-400'}`}>
+                           {String.fromCharCode(65 + i)}
+                        </div>
+                        <span className="text-4xl font-bold uppercase">{opt}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
