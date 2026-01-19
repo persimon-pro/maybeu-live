@@ -19,7 +19,7 @@ const TRANSLATIONS = {
     shakeTitle: 'ИСПЫТАНИЕ ТРЯСКИ',
     pushTitle: 'ГОНКА: ЖМИ БЫСТРЕЕ!',
     artTitle: 'ИИ АРТ-БИТВА',
-    questTitle: 'МЕГА-КВЕСТ: ИСПЫТАНИЕ',
+    questTitle: 'МЕГА-КВЕСТ',
     artThemeLabel: 'ТЕМА:',
     questionLabel: 'Вопрос',
     of: 'из',
@@ -37,7 +37,7 @@ const TRANSLATIONS = {
     congrats: 'НЕВЕРОЯТНАЯ СКОРОСТЬ!',
     standby: 'ОЖИДАНИЕ СТАРТА',
     resultsTitle: 'ИТОГИ ИГРЫ',
-    questResultsTitle: 'ИТОГИ МЕГА-КВЕСТА',
+    questResultsTitle: 'ИТОГИ КВЕСТА',
     score: 'баллов',
     speed: 'скорость',
     ms: 'сек',
@@ -49,7 +49,7 @@ const TRANSLATIONS = {
     fullscreen: 'На весь экран',
     clear: 'Сброс',
     wakeLockActive: 'Экран не погаснет',
-    questStage1Title: 'МАШИНА ВРЕМЕНИ: 2099',
+    questStage1Title: 'МАШИНА ВРЕМЕНИ',
     questStage1Desc: 'На какой день недели придется {date} в 2099 году?',
     questStage2Title: 'ФОТО-ОХОТА',
     questStage2Desc: 'Сфоткай мужчину с интересной прической или бородой!',
@@ -71,7 +71,7 @@ const TRANSLATIONS = {
     shakeTitle: 'SHAKE CHALLENGE',
     pushTitle: 'RACE: PUSH IT FAST!',
     artTitle: 'AI ART BATTLE',
-    questTitle: 'MEGA QUEST: CHALLENGE',
+    questTitle: 'MEGA QUEST',
     artThemeLabel: 'THEME:',
     questionLabel: 'Question',
     of: 'of',
@@ -89,7 +89,7 @@ const TRANSLATIONS = {
     congrats: 'INCREDIBLE SPEED!',
     standby: 'WAITING FOR START',
     resultsTitle: 'GAME RESULTS',
-    questResultsTitle: 'MEGA QUEST RESULTS',
+    questResultsTitle: 'QUEST RESULTS',
     score: 'pts',
     speed: 'speed',
     ms: 's',
@@ -101,7 +101,7 @@ const TRANSLATIONS = {
     fullscreen: 'Fullscreen',
     clear: 'Reset',
     wakeLockActive: 'Wake lock active',
-    questStage1Title: 'TIME MACHINE: 2099',
+    questStage1Title: 'TIME MACHINE',
     questStage1Desc: 'What day of week is {date} in the year 2099?',
     questStage2Title: 'PHOTO HUNT',
     questStage2Desc: 'Capture a man with an interesting hairstyle or beard!',
@@ -277,25 +277,25 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
            <div className="absolute top-6 right-6 flex gap-2 z-50">
              <button onClick={toggleFullscreen} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500"><Maximize2 size={24} /></button>
            </div>
-           <h1 className="text-4xl font-black text-slate-800 tracking-[1em] mb-4 uppercase italic drop-shadow-lg">{t.standby}</h1>
-           <div className="w-24 h-1 bg-slate-900 rounded-full animate-pulse"></div>
+           <h1 className="text-[5vmin] font-black text-slate-800 tracking-[1em] mb-4 uppercase italic drop-shadow-lg">{t.standby}</h1>
+           <div className="w-[10vmin] h-1 bg-slate-900 rounded-full animate-pulse"></div>
         </div>
      );
   }
 
   if (activeEvent.status === 'COMPLETED') {
     return (
-      <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden animate-in fade-in duration-1000">
+      <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-[5vmin] text-center relative overflow-hidden animate-in fade-in duration-1000">
          <div className="absolute top-6 right-6 flex gap-2 z-50">
            <button onClick={toggleFullscreen} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500"><Maximize2 size={24} /></button>
          </div>
          
-         <div className="relative z-10 max-w-5xl space-y-12">
+         <div className="relative z-10 max-w-5xl space-y-[5vmin]">
             <div className="w-32 h-2 bg-emerald-500 mx-auto rounded-full animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div>
-            <h1 className="text-7xl font-black text-white uppercase italic tracking-tighter leading-tight drop-shadow-2xl">
+            <h1 className="text-[7vmin] font-black text-white uppercase italic tracking-tighter leading-tight drop-shadow-2xl">
               {t.thanks}
             </h1>
-            <p className="text-2xl font-bold text-slate-500 uppercase tracking-[0.5em]">{t.completed}</p>
+            <p className="text-[3vmin] font-bold text-slate-500 uppercase tracking-[0.5em]">{t.completed}</p>
          </div>
          
          <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
@@ -309,28 +309,28 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
   // Lobby view before game starts
   if (!gameState || (!gameState.isActive && !gameFinished)) {
     return (
-      <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden">
+      <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-[5vmin] text-center relative overflow-hidden">
         <div className="absolute top-6 right-6 flex gap-2 z-50">
            <button onClick={handleClearScreen} className="p-4 bg-white/5 hover:bg-rose-600/20 hover:text-rose-500 rounded-2xl text-slate-500 transition-all" title={t.clear}><MonitorOff size={24} /></button>
            <button onClick={toggleFullscreen} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500"><Maximize2 size={24} /></button>
         </div>
         
-        <div className="relative z-10 space-y-12">
-          <h1 className="text-8xl font-black text-white tracking-tighter uppercase italic">{activeEvent.name}</h1>
+        <div className="relative z-10 space-y-[5vmin]">
+          <h1 className="text-[10vmin] font-black text-white tracking-tighter uppercase italic leading-none">{activeEvent.name}</h1>
           
           {activeEvent.status === 'LIVE' ? (
-            <div className="bg-white p-8 rounded-[40px] shadow-2xl inline-block border-[12px] border-indigo-600/20 animate-in zoom-in duration-500">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu-live.vercel.app/?code=${activeEvent.code}`} alt="QR" className="w-[300px] h-[300px]" />
-              <div className="mt-4 text-indigo-900 font-black text-xl uppercase tracking-widest">{t.joinOn}maybeu-live.vercel.app</div>
+            <div className="bg-white p-[2vmin] rounded-[3vmin] shadow-2xl inline-block border-[1vmin] border-indigo-600/20 animate-in zoom-in duration-500">
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu-live.vercel.app/?code=${activeEvent.code}`} alt="QR" className="w-[30vmin] h-[30vmin]" />
+              <div className="mt-4 text-indigo-900 font-black text-[2.5vmin] uppercase tracking-widest">{t.joinOn} maybeu-live.vercel.app</div>
             </div>
           ) : (
             <div className="py-20 animate-in fade-in duration-1000">
                <div className="w-32 h-1 bg-indigo-500 mx-auto rounded-full mb-8 animate-pulse"></div>
-               <p className="text-3xl font-black text-slate-500 tracking-[0.5em] uppercase italic">{t.standby}</p>
+               <p className="text-[4vmin] font-black text-slate-500 tracking-[0.5em] uppercase italic">{t.standby}</p>
             </div>
           )}
 
-          <div className="flex justify-center gap-12 text-3xl font-bold text-slate-500 uppercase tracking-widest">
+          <div className="flex justify-center gap-[5vmin] text-[3vmin] font-bold text-slate-500 uppercase tracking-widest">
             <div className="flex items-center gap-3"><Users size={40} className="text-indigo-500" /> {onlineCount} {t.online}</div>
             <div className="font-mono text-white bg-slate-950 px-8 py-3 rounded-full border border-slate-800">КОД: {activeEvent.code}</div>
           </div>
@@ -343,15 +343,15 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
   const currentQuestion = gameState.questions ? gameState.questions[gameState.currentIdx] : null;
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col bg-slate-950 p-12 overflow-hidden relative">
-      <header className="flex justify-between items-start mb-12 relative z-10">
-        <div className="flex items-center gap-6">
-          <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl">
-            {gameState.gameType === GameType.QUEST ? <Rocket size={48} className="text-white" /> : 
-             gameState.gameType === GameType.SHAKE_IT ? <RotateCcw size={48} className="text-white" /> : <Zap size={48} className="text-white" />}
+    <div ref={containerRef} className="flex-1 flex flex-col bg-slate-950 p-[3vmin] overflow-hidden relative">
+      <header className="flex justify-between items-start mb-[3vmin] relative z-10">
+        <div className="flex items-center gap-[2vmin]">
+          <div className="w-[8vmin] h-[8vmin] bg-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl">
+            {gameState.gameType === GameType.QUEST ? <Rocket size={40} className="text-white" /> : 
+             gameState.gameType === GameType.SHAKE_IT ? <RotateCcw size={40} className="text-white" /> : <Zap size={40} className="text-white" />}
           </div>
           <div>
-            <h2 className="text-4xl font-black text-white italic uppercase">
+            <h2 className="text-[4vmin] font-black text-white italic uppercase leading-none">
               {gameFinished ? (gameState.gameType === GameType.QUEST ? t.questResultsTitle : t.resultsTitle) : 
                gameState.gameType === GameType.QUIZ ? t.quizTitle :
                gameState.gameType === GameType.BELIEVE_NOT ? t.believeTitle :
@@ -359,9 +359,9 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                gameState.gameType === GameType.SHAKE_IT ? t.shakeTitle :
                gameState.gameType === GameType.IMAGE_GEN ? t.artTitle : t.questTitle}
             </h2>
-            {!gameFinished && gameState.gameType === GameType.QUEST && <p className="text-xl text-indigo-400 font-bold uppercase tracking-widest">ЭТАП {gameState.questStage} / 4</p>}
+            {!gameFinished && gameState.gameType === GameType.QUEST && <p className="text-[2vmin] text-indigo-400 font-bold uppercase tracking-widest">ЭТАП {gameState.questStage} / 4</p>}
             {!gameFinished && (gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && (
-              <p className="text-xl text-indigo-400 font-bold uppercase tracking-widest">{t.questionLabel} {gameState.currentIdx + 1} {t.of} {gameState.questions?.length}</p>
+              <p className="text-[2vmin] text-indigo-400 font-bold uppercase tracking-widest">{t.questionLabel} {gameState.currentIdx + 1} {t.of} {gameState.questions?.length}</p>
             )}
           </div>
         </div>
@@ -373,41 +373,41 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
 
       <main className="flex-1 flex flex-col justify-center w-full relative z-10 overflow-hidden">
         {gameFinished ? (
-          <div className="w-full max-w-4xl mx-auto space-y-8 animate-in zoom-in">
-            <div className="text-center mb-8">
-              <Trophy size={100} className="text-amber-500 mx-auto animate-bounce" />
-              <h1 className="text-6xl font-black text-white italic mt-4 uppercase tracking-tighter">{t.winner}</h1>
+          <div className="w-full max-w-6xl mx-auto space-y-[4vmin] animate-in zoom-in">
+            <div className="text-center mb-[4vmin]">
+              <Trophy className="text-amber-500 mx-auto animate-bounce w-[15vmin] h-[15vmin]" />
+              <h1 className="text-[8vmin] font-black text-white italic mt-4 uppercase tracking-tighter leading-none">{t.winner}</h1>
               {(gameState.gameType === GameType.PUSH_IT || gameState.gameType === GameType.SHAKE_IT) && (
                  <div className="mt-4 animate-in fade-in slide-in-from-bottom-4">
-                    <span className="text-8xl font-black text-amber-500 uppercase italic tracking-tighter">
+                    <span className="text-[10vmin] font-black text-amber-500 uppercase italic tracking-tighter">
                       {gameState.gameType === GameType.PUSH_IT ? pushResults[0]?.name : shakeResults[0]?.name}
                     </span>
                  </div>
               )}
             </div>
             {(gameState.gameType === GameType.QUEST ? questResults : (gameState.gameType === GameType.PUSH_IT ? pushResults : (gameState.gameType === GameType.SHAKE_IT ? shakeResults : quizLeaders))).map((player, i) => (
-              <div key={player.name} className={`flex items-center gap-6 bg-slate-900 border-2 p-6 rounded-[30px] transition-all transform hover:scale-105 ${i === 0 ? 'border-amber-500 shadow-2xl scale-110' : 'border-slate-800'}`}>
-                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 ${i === 0 ? 'bg-amber-500' : 'bg-slate-800'}`}>
-                   {i === 0 ? <Trophy className="text-amber-900" size={40} /> : <Medal className="text-slate-500" size={32} />}
+              <div key={player.name} className={`flex items-center gap-[3vmin] bg-slate-900 border-2 p-[2vmin] rounded-[3vmin] transition-all transform hover:scale-105 ${i === 0 ? 'border-amber-500 shadow-2xl scale-110' : 'border-slate-800'}`}>
+                <div className={`w-[8vmin] h-[8vmin] rounded-2xl flex items-center justify-center shrink-0 ${i === 0 ? 'bg-amber-500' : 'bg-slate-800'}`}>
+                   {i === 0 ? <Trophy className="text-amber-900" size={32} /> : <Medal className="text-slate-500" size={24} />}
                 </div>
                 <div className="flex-1">
-                   <h3 className="text-4xl font-black text-white italic uppercase">{player.name}</h3>
-                   <span className="text-indigo-400 font-bold uppercase tracking-widest text-sm">{player.score} {gameState.gameType === GameType.PUSH_IT ? 'clicks' : gameState.gameType === GameType.SHAKE_IT ? 'power' : t.score}</span>
+                   <h3 className="text-[4vmin] font-black text-white italic uppercase leading-none">{player.name}</h3>
+                   <span className="text-indigo-400 font-bold uppercase tracking-widest text-[2vmin]">{player.score} {gameState.gameType === GameType.PUSH_IT ? 'clicks' : gameState.gameType === GameType.SHAKE_IT ? 'power' : t.score}</span>
                 </div>
-                <div className="text-6xl font-black text-slate-800">#{i + 1}</div>
+                <div className="text-[5vmin] font-black text-slate-800">#{i + 1}</div>
               </div>
             ))}
           </div>
         ) : (
           <>
             {(gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && gameState.questions && (
-              <div className="max-w-6xl mx-auto w-full space-y-12">
-                <div className="bg-slate-900/50 backdrop-blur-xl p-12 rounded-[60px] border-4 border-white/10 shadow-2xl">
-                  <h1 className="text-6xl font-black text-white text-center leading-tight tracking-tight italic">
+              <div className="max-w-7xl mx-auto w-full space-y-[4vmin] h-full flex flex-col justify-center">
+                <div className="bg-slate-900/50 backdrop-blur-xl p-[4vmin] rounded-[5vmin] border-4 border-white/10 shadow-2xl">
+                  <h1 className="text-[5vmin] font-black text-white text-center leading-tight tracking-tight italic">
                     {currentQuestion?.question || '...'}
                   </h1>
                 </div>
-                <div className={`grid gap-8 ${gameState.gameType === GameType.BELIEVE_NOT ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                <div className={`grid gap-[3vmin] ${gameState.gameType === GameType.BELIEVE_NOT ? 'grid-cols-2' : 'grid-cols-2'}`}>
                   {currentQuestion?.options?.map((opt: string, i: number) => {
                     const isRevealed = gameState.isAnswerRevealed;
                     const isCorrect = i === currentQuestion.correctAnswerIndex;
@@ -419,11 +419,11 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
                     }
 
                     return (
-                      <div key={i} className={`${cardClass} border-2 p-8 rounded-[40px] flex items-center gap-6 shadow-xl relative overflow-hidden transition-all duration-500`}>
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-black ${isRevealed && isCorrect ? 'bg-white text-emerald-600' : 'bg-white/10 text-indigo-400'}`}>
+                      <div key={i} className={`${cardClass} border-2 p-[3vmin] rounded-[4vmin] flex items-center gap-[3vmin] shadow-xl relative overflow-hidden transition-all duration-500`}>
+                        <div className={`w-[8vmin] h-[8vmin] rounded-2xl flex items-center justify-center text-[4vmin] font-black shrink-0 ${isRevealed && isCorrect ? 'bg-white text-emerald-600' : 'bg-white/10 text-indigo-400'}`}>
                            {String.fromCharCode(65 + i)}
                         </div>
-                        <span className="text-4xl font-bold uppercase">{opt}</span>
+                        <span className="text-[4vmin] font-bold uppercase leading-tight">{opt}</span>
                       </div>
                     );
                   })}
@@ -435,22 +435,22 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
               <div className="w-full max-w-5xl mx-auto space-y-12">
                 {gameState.isCountdown ? (
                   <div className="text-center space-y-8 animate-in zoom-in">
-                    <h1 className="text-6xl font-black text-indigo-500 uppercase tracking-[0.3em]">{t.getReady}</h1>
-                    <div className="text-[240px] font-black text-white leading-none animate-pulse">{gameState.countdownValue}</div>
+                    <h1 className="text-[6vmin] font-black text-indigo-500 uppercase tracking-[0.3em]">{t.getReady}</h1>
+                    <div className="text-[25vmin] font-black text-white leading-none animate-pulse">{gameState.countdownValue}</div>
                   </div>
                 ) : (
                   <>
                     <div className="text-center space-y-4">
-                      <h1 className="text-8xl font-black text-white italic animate-bounce">{t.pushTitle}</h1>
+                      <h1 className="text-[10vmin] font-black text-white italic animate-bounce">{t.pushTitle}</h1>
                     </div>
-                    <div className="space-y-6">
+                    <div className="space-y-[2vmin]">
                       {pushResults.slice(0, 5).map(({name, score}, i) => (
                         <div key={name} className="space-y-2">
                           <div className="flex justify-between items-end px-2">
-                            <span className="text-2xl font-black text-white uppercase italic">{name}</span>
-                            <span className="text-2xl font-mono text-indigo-400">{score}/50</span>
+                            <span className="text-[3vmin] font-black text-white uppercase italic">{name}</span>
+                            <span className="text-[3vmin] font-mono text-indigo-400">{score}/50</span>
                           </div>
-                          <div className="h-8 bg-slate-900 rounded-full border-2 border-slate-800 overflow-hidden shadow-inner">
+                          <div className="h-[4vmin] bg-slate-900 rounded-full border-2 border-slate-800 overflow-hidden shadow-inner">
                             <div 
                               className={`h-full transition-all duration-300 rounded-full shadow-lg ${i === 0 ? 'bg-gradient-to-r from-amber-500 to-rose-500 animate-pulse' : 'bg-indigo-600'}`}
                               style={{ width: `${(score / 50) * 100}%` }}
@@ -465,22 +465,22 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
             )}
 
             {gameState.gameType === GameType.SHAKE_IT && (
-              <div className="w-full max-w-5xl mx-auto space-y-12">
+              <div className="w-full max-w-6xl mx-auto space-y-12">
                  <div className="text-center space-y-4">
-                    <h1 className="text-8xl font-black text-white italic animate-bounce">{t.shakeTitle}</h1>
-                    <p className="text-2xl text-rose-400 font-bold uppercase tracking-widest">{t.shakeFaster}</p>
+                    <h1 className="text-[10vmin] font-black text-white italic animate-bounce">{t.shakeTitle}</h1>
+                    <p className="text-[3vmin] text-rose-400 font-bold uppercase tracking-widest">{t.shakeFaster}</p>
                  </div>
-                 <div className="grid grid-cols-5 gap-8 items-end h-[400px]">
+                 <div className="grid grid-cols-5 gap-[3vmin] items-end h-[50vh]">
                     {shakeResults.map(({name, score}, i) => (
                        <div key={name} className="flex flex-col items-center gap-4 h-full justify-end group">
-                          <div className="text-2xl font-black text-white uppercase italic truncate w-full text-center">{name}</div>
-                          <div className="w-full bg-slate-900 rounded-[30px] border-4 border-slate-800 relative overflow-hidden flex-1 shadow-2xl">
+                          <div className="text-[2.5vmin] font-black text-white uppercase italic truncate w-full text-center">{name}</div>
+                          <div className="w-full bg-slate-900 rounded-t-[3vmin] border-4 border-b-0 border-slate-800 relative overflow-hidden flex-1 shadow-2xl">
                              <div 
                                className={`absolute bottom-0 w-full transition-all duration-300 rounded-t-[20px] ${i === 0 ? 'bg-gradient-to-t from-rose-600 to-amber-500 animate-pulse' : 'bg-indigo-600'}`}
                                style={{ height: `${Math.min(100, score / 1.5)}%` }}
                              />
                           </div>
-                          <div className="text-3xl font-mono text-indigo-400 font-black">{score}</div>
+                          <div className="text-[4vmin] font-mono text-indigo-400 font-black">{score}</div>
                        </div>
                     ))}
                  </div>
@@ -489,13 +489,13 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
 
             {gameState.gameType === GameType.IMAGE_GEN && (
               <div className="w-full h-full flex flex-col">
-                <div className="text-center mb-8">
-                  <h2 className="text-2xl font-black text-indigo-500 uppercase tracking-[0.3em] mb-2">{t.artThemeLabel}</h2>
-                  <h1 className="text-7xl font-black text-white italic uppercase tracking-tighter">{gameState.artTheme}</h1>
+                <div className="text-center mb-[4vmin]">
+                  <h2 className="text-[3vmin] font-black text-indigo-500 uppercase tracking-[0.3em] mb-2">{t.artThemeLabel}</h2>
+                  <h1 className="text-[8vmin] font-black text-white italic uppercase tracking-tighter leading-none">{gameState.artTheme}</h1>
                 </div>
-                <div className="flex-1 grid grid-cols-4 gap-6 p-4">
+                <div className="flex-1 grid grid-cols-4 gap-[2vmin] p-4">
                    {getGuestImages().slice(-8).reverse().map((img: any, i: number) => (
-                     <div key={i} className="aspect-square rounded-[40px] overflow-hidden border-8 border-slate-900 shadow-2xl transform rotate-1 hover:rotate-0 transition-transform bg-slate-900 group relative">
+                     <div key={i} className="aspect-square rounded-[4vmin] overflow-hidden border-8 border-slate-900 shadow-2xl transform rotate-1 hover:rotate-0 transition-transform bg-slate-900 group relative">
                         <img src={img.url} className="w-full h-full object-cover" alt="Art" />
                         <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-md p-3 rounded-2xl">
                            <p className="text-white font-black text-xs uppercase text-center">{img.user}</p>
@@ -507,35 +507,35 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
             )}
 
             {gameState.gameType === GameType.QUEST && (
-              <div className="space-y-12 animate-in fade-in duration-500 h-full flex flex-col">
+              <div className="space-y-[5vmin] animate-in fade-in duration-500 h-full flex flex-col justify-center">
                  <div className="text-center max-w-5xl mx-auto space-y-4">
-                    <h1 className="text-7xl font-black text-white uppercase italic tracking-tighter">
+                    <h1 className="text-[8vmin] font-black text-white uppercase italic tracking-tighter leading-none">
                       {gameState.questStage === 1 ? t.questStage1Title : 
                        gameState.questStage === 2 ? t.questStage2Title : 
                        gameState.questStage === 3 ? t.questStage3Title : t.questStage4Title}
                     </h1>
-                    <p className="text-3xl font-bold text-slate-500 uppercase">
+                    <p className="text-[3.5vmin] font-bold text-slate-500 uppercase">
                        {gameState.questStage === 1 ? t.questStage1Desc.replace('{date}', new Date().toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long' })) : 
                         gameState.questStage === 2 ? t.questStage2Desc : 
                         gameState.questStage === 3 ? t.questStage3Desc : t.questStage4Desc}
                     </p>
                  </div>
 
-                 <div className="flex-1 grid grid-cols-4 gap-6 auto-rows-max overflow-y-auto">
+                 <div className="flex-1 grid grid-cols-4 gap-[2vmin] auto-rows-max overflow-y-auto p-4">
                     {getQuestResponses().slice(-12).reverse().map((res: any, i: number) => (
-                      <div key={i} className="bg-slate-900 border border-slate-800 p-4 rounded-3xl animate-in zoom-in overflow-hidden shadow-xl">
+                      <div key={i} className="bg-slate-900 border border-slate-800 p-[2vmin] rounded-[3vmin] animate-in zoom-in overflow-hidden shadow-xl">
                         {res.isImage ? (
                           <div className="aspect-square rounded-2xl mb-3 overflow-hidden border-2 border-emerald-500/20 bg-slate-950">
                             <img src={res.value} className="w-full h-full object-cover" alt="Guest" />
                           </div>
                         ) : (
                           <div className="aspect-square flex items-center justify-center bg-slate-950 rounded-2xl mb-3">
-                            <span className="text-5xl font-black text-indigo-500">{res.value}</span>
+                            <span className="text-[6vmin] font-black text-indigo-500">{res.value}</span>
                           </div>
                         )}
                         <div className="text-center">
-                           <p className="text-sm font-black text-white uppercase italic truncate">{res.name}</p>
-                           <p className="text-[10px] text-slate-500 font-bold">{(res.timeTaken / 1000).toFixed(1)} {t.ms}</p>
+                           <p className="text-[2vmin] font-black text-white uppercase italic truncate">{res.name}</p>
+                           <p className="text-[1.5vmin] text-slate-500 font-bold">{(res.timeTaken / 1000).toFixed(1)} {t.ms}</p>
                         </div>
                       </div>
                     ))}
@@ -547,7 +547,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       </main>
 
       <footer className="mt-12 flex justify-between items-center text-slate-500 font-bold uppercase tracking-widest relative z-10">
-         <div className="flex items-center gap-3 bg-slate-900/50 px-6 py-3 rounded-2xl"><Users size={24} className="text-indigo-500" /> {onlineCount} {t.online}</div>
+         <div className="flex items-center gap-3 bg-slate-900/50 px-[3vmin] py-[1.5vmin] rounded-2xl"><Users size={24} className="text-indigo-500" /> {onlineCount} {t.online}</div>
          <div className="text-indigo-400 font-black">{t.engine}</div>
       </footer>
     </div>
