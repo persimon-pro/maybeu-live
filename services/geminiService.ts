@@ -3,8 +3,23 @@ import { QuizQuestion, Language } from "../types";
 
 /**
  * AI Service for generating interactive content using Google Gemini API.
- * The API key is obtained exclusively from the environment variable process.env.API_KEY.
  */
+
+// --- НАСТРОЙКА КЛЮЧА (САМОЕ ВАЖНОЕ) ---
+// 1. Если у вас есть .env файл, ключ подтянется из VITE_GEMINI_API_KEY
+// 2. Если нет, вставьте его в кавычки ниже вместо пустой строки
+const HARDCODED_KEY = "AIzaSyArOLbY23EpDcvCJsUkaH9MOUnu7KosVF4"; 
+
+// Универсальное получение ключа для Vite
+// @ts-ignore
+const apiKey = HARDCODED_KEY || import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== "undefined" ? process.env.API_KEY : "");
+
+if (!apiKey) {
+  console.error("CRITICAL: API Key not found! AI features will not work.");
+  alert("Ошибка: Не найден API ключ. Проверьте services/geminiService.ts");
+}
+
+// --- КВИЗ (ВАШ РАБОЧИЙ КОД С ИСПРАВЛЕННЫМ КЛЮЧОМ) ---
 
 export const generateQuizQuestions = async (
   topic: string, 
@@ -13,11 +28,12 @@ export const generateQuizQuestions = async (
   mood: string = "fun"
 ): Promise<QuizQuestion[]> => {
   try {
-    // Fix: Initializing Gemini AI exclusively with process.env.API_KEY as per guidelines.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Используем переменную apiKey, которая точно определена выше
+    const ai = new GoogleGenAI({ apiKey });
+    
     const langText = lang === 'ru' ? 'русский' : 'английский';
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-flash-preview', // Ваша рабочая модель
       contents: {
         role: 'user',
         parts: [{ text: `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.` }]
@@ -57,7 +73,8 @@ export const generateBelieveNotQuestions = async (
   count: number = 5
 ): Promise<QuizQuestion[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
+    
     const langText = lang === 'ru' ? 'русский' : 'английский';
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -96,7 +113,8 @@ export const generateBelieveNotQuestions = async (
 
 export const generateGuestGreeting = async (guestName: string, lang: Language): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
+    
     const langText = lang === 'ru' ? 'Russian' : 'English';
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -106,28 +124,21 @@ export const generateGuestGreeting = async (guestName: string, lang: Language): 
       }
     });
     // @ts-ignore
-    return response.text()?.trim() || `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
+    return response.text()?.trim() || `Привет, ${guestName}! Рады видеть тебя!`;
   } catch (e) {
-    return `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
+    return `Привет, ${guestName}! Рады видеть тебя!`;
   }
 };
 
-// --- ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ НИЖЕ (ИСПРАВЛЕНА ГЕНЕРАЦИЯ КАРТИНОК) ---
+// --- ГЕНЕРАЦИЯ КАРТИНОК (БЫСТРАЯ МОДЕЛЬ) ---
 
 export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" = "1K"): Promise<string | null> => {
   try {
-    // Берем ключ так же, как в остальных функциях, но добавляем страховку для Vite (на случай, если process.env пустой)
-    // @ts-ignore
-    const key = process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    
-    if (!key) {
-        console.error("API Key is missing for Image Generation");
-        return null;
-    }
+    if (!apiKey) return null;
+    const ai = new GoogleGenAI({ apiKey });
 
-    const ai = new GoogleGenAI({ apiKey: key });
-
-    // Используем правильный метод generateImages (а не generateContent) и быструю модель
+    // Используем imagen-3.0-fast-generate-001 (быстрая, дешевая)
+    // Метод generateImages (единственно верный для картинок в новой библиотеке)
     const response = await ai.models.generateImages({
       model: 'imagen-3.0-fast-generate-001', 
       prompt: prompt,
@@ -145,8 +156,10 @@ export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" =
     }
     
     return null;
-  } catch (e) {
+  } catch (e: any) {
     console.error("Gemini image generation failed", e);
+    if (e.status === 403) alert("Ошибка 403: Нет прав. Для картинок нужен платный аккаунт Google Cloud.");
+    if (e.status === 429) alert("Лимит запросов превышен. Подождите минуту.");
     return null;
   }
 };
