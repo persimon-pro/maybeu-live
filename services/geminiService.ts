@@ -3,11 +3,18 @@ import { QuizQuestion, Language } from "../types";
 
 /**
  * AI Service for generating interactive content using Google Gemini API.
- * The API key is obtained exclusively from the environment variable process.env.API_KEY.
  */
 
-// --- КВИЗЫ (ВАШ РАБОЧИЙ КОД, НЕ ТРОГАЕМ) ---
+// --- 1. ПРАВИЛЬНОЕ ПОЛУЧЕНИЕ КЛЮЧА ---
+// Проверяем все возможные варианты, чтобы ключ точно нашелся
+// @ts-ignore
+const apiKey = (typeof process !== "undefined" ? process.env.API_KEY : undefined) || import.meta.env.VITE_GEMINI_API_KEY || "";
 
+if (!apiKey) {
+  console.error("CRITICAL ERROR: API Key is missing. Check .env file.");
+}
+
+// --- 2. КВИЗ (ВАШ КОД + FIX КЛЮЧА) ---
 export const generateQuizQuestions = async (
   topic: string, 
   lang: Language, 
@@ -15,11 +22,12 @@ export const generateQuizQuestions = async (
   mood: string = "fun"
 ): Promise<QuizQuestion[]> => {
   try {
-    // Fix: Initializing Gemini AI exclusively with process.env.API_KEY as per guidelines.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY });
+    // Используем найденный apiKey
+    const ai = new GoogleGenAI({ apiKey });
+    
     const langText = lang === 'ru' ? 'русский' : 'английский';
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash', // Исправлено на 2.0-flash (3-preview может не работать у всех)
       contents: {
         role: 'user',
         parts: [{ text: `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.` }]
@@ -59,10 +67,11 @@ export const generateBelieveNotQuestions = async (
   count: number = 5
 ): Promise<QuizQuestion[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
+    
     const langText = lang === 'ru' ? 'русский' : 'английский';
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash',
       contents: {
         role: 'user',
         parts: [{ text: `Generate a list of ${count} "True or False" facts about "${topic}". Language: ${langText}.` }]
@@ -98,43 +107,37 @@ export const generateBelieveNotQuestions = async (
 
 export const generateGuestGreeting = async (guestName: string, lang: Language): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
+    
     const langText = lang === 'ru' ? 'Russian' : 'English';
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash',
       contents: {
         role: 'user',
         parts: [{ text: `Generate a short, funny, welcoming message for a guest named ${guestName} at a party. Max 10 words. Emoji included. Format for WhatsApp/Telegram. Language: ${langText}.` }]
       }
     });
     // @ts-ignore
-    return response.text()?.trim() || `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
+    return response.text()?.trim() || `Привет, ${guestName}!`;
   } catch (e) {
-    return `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
+    return `Привет, ${guestName}!`;
   }
 };
 
-// --- ГЕНЕРАЦИЯ КАРТИНОК (ОБНОВЛЕНО: БЫСТРАЯ МОДЕЛЬ) ---
-
+// --- 3. ИИ АРТ (БЫСТРАЯ МОДЕЛЬ) ---
 export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" = "1K"): Promise<string | null> => {
   try {
-    // Используем process.env.API_KEY, но добавляем fallback для Vite
-    const apiKey = process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("API Key not found");
-      return null;
-    }
-
+    if (!apiKey) return null;
     const ai = new GoogleGenAI({ apiKey });
 
-    // Используем быструю модель imagen-3.0-fast-generate-001
+    // Используем FAST модель для скорости
     const response = await ai.models.generateImages({
       model: 'imagen-3.0-fast-generate-001', 
       prompt: prompt,
       config: {
         numberOfImages: 1,
         aspectRatio: "1:1",
-        safetyFilterLevel: "block_only_high", // Ослабленный фильтр
+        safetyFilterLevel: "block_only_high", 
         personGeneration: "allow_adult"
       }
     });
@@ -147,10 +150,9 @@ export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" =
     return null;
   } catch (e: any) {
     console.error("Gemini image generation failed", e);
-    // Обработка ошибок (опционально можно убрать, если не нужно)
-    if (e.status === 403) alert("Ошибка 403: Проверьте биллинг в Google Cloud.");
-    else if (e.status === 429) alert("Лимит запросов. Подождите минуту.");
-    
+    // Полезные алерты для отладки
+    if (e.status === 403) alert("Ошибка 403: Нет доступа. Нужен биллинг в Google Cloud.");
+    if (e.status === 429) alert("Слишком много запросов. Подождите.");
     return null;
   }
 };
