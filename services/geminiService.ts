@@ -1,161 +1,131 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { QuizQuestion, Language } from "../types";
+import { GoogleGenAI } from "@google/genai";
+
+// 1. ПОЛУЧЕНИЕ КЛЮЧА
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "ВАШ_КЛЮЧ_ЗДЕСЬ"; 
+
+const client = new GoogleGenAI({ apiKey });
+
+// Проверка наличия ключа
+const checkApiKey = () => {
+  if (!apiKey || apiKey === "ВАШ_КЛЮЧ_ЗДЕСЬ" || apiKey === "") {
+    console.error("API Key is missing!");
+    alert("ОШИБКА: Не указан API ключ в файле services/geminiService.ts");
+    return false;
+  }
+  return true;
+};
 
 /**
- * AI Service for generating interactive content using Google Gemini API.
- * The API key is obtained exclusively from the environment variable process.env.API_KEY.
+ * Генерация вопросов для квиза (Gemini 1.5 Flash)
  */
+export const generateQuizQuestions = async (topic: string, lang: string, count: number = 5, mood: string = 'fun'): Promise<any[]> => {
+  if (!checkApiKey()) return [];
 
-export const generateQuizQuestions = async (
-  topic: string, 
-  lang: Language, 
-  count: number = 5,
-  mood: string = "fun"
-): Promise<QuizQuestion[]> => {
   try {
-    // Fix: Initializing Gemini AI exclusively with process.env.API_KEY as per guidelines.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const langText = lang === 'ru' ? 'русский' : 'английский';
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.STRING },
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctAnswerIndex: { type: Type.INTEGER }
-            },
-            required: ["id", "question", "options", "correctAnswerIndex"]
-          }
-        }
-      }
+    const prompt = `
+      Create ${count} quiz questions about "${topic}". 
+      Language: ${lang}. 
+      Mood: ${mood}.
+      Format: JSON array of objects with keys: 
+      - question (string)
+      - options (array of 4 strings)
+      - correctAnswerIndex (number 0-3)
+      
+      Strictly return ONLY valid JSON. No markdown.
+    `;
+
+    const response = await client.models.generateContent({
+      model: 'gemini-1.5-flash', 
+      contents: { role: 'user', parts: [{ text: prompt }] },
+      config: { responseMimeType: 'application/json' }
     });
-    // Fix: Accessing text content directly from the property as per extracting text guidelines.
-    const text = response.text;
-    if (text) {
-      return JSON.parse(text.trim());
-    }
-    return getFallbackQuiz(topic, count);
-  } catch (e) {
-    console.error("AI Quiz error, using fallback", e);
-    return getFallbackQuiz(topic, count);
-  }
-};
 
-const getFallbackQuiz = (topic: string, count: number): QuizQuestion[] => {
-  return Array.from({ length: count }).map((_, i) => ({
-    id: `fallback-${i}`,
-    question: `Запасной вопрос ${i + 1} по теме ${topic}?`,
-    options: ["Вариант A", "Вариант B", "Вариант C", "Вариант D"],
-    correctAnswerIndex: 0
-  }));
-};
-
-export const generateBelieveNotQuestions = async (
-  topic: string, 
-  lang: Language, 
-  count: number = 5
-): Promise<QuizQuestion[]> => {
-  try {
-    // Fix: Using mandatory initialization pattern with process.env.API_KEY.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const langText = lang === 'ru' ? 'русском' : 'English';
-    const options = lang === 'ru' ? ["Верю", "Не верю"] : ["Believe", "Don't Believe"];
+    const text = response.text();
+    if (!text) return [];
     
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate a list of ${count} interesting facts on the topic "${topic}" for a "Believe or Not" game. Some should be true, some should be surprisingly false. Return a JSON array of objects. Each object must have: "question" (the fact), "correctAnswerIndex" (0 for True/Believe, 1 for False/Not Believe). Language: ${langText}.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.STRING },
-              question: { type: Type.STRING },
-              correctAnswerIndex: { type: Type.INTEGER }
-            },
-            required: ["id", "question", "correctAnswerIndex"]
-          }
-        }
-      }
-    });
-    
-    const text = response.text;
-    const raw = text ? JSON.parse(text.trim()) : [];
-    return raw.map((item: any, idx: number) => ({
-      id: item.id || `bn-${idx}`,
-      question: item.question,
-      options: options,
-      correctAnswerIndex: item.correctAnswerIndex
-    }));
-  } catch (e) {
-    console.error("AI Believe Not error, using fallback", e);
-    return getFallbackBelieveNot(lang);
+    const cleanText = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanText);
+  } catch (error) {
+    console.error("Quiz Error:", error);
+    return [];
   }
 };
 
-const getFallbackBelieveNot = (lang: Language): QuizQuestion[] => {
-  const options = lang === 'ru' ? ["Верю", "Не верю"] : ["Believe", "Don't Believe"];
-  return [{
-    id: 'fallback-bn',
-    question: lang === 'ru' ? 'Первый в мире программист был женщиной?' : 'The world\'s first programmer was a woman?',
-    options: options,
-    correctAnswerIndex: 0
-  }];
-};
+/**
+ * Генерация вопросов "Верю / Не верю"
+ */
+export const generateBelieveNotQuestions = async (topic: string, lang: string, count: number = 5): Promise<any[]> => {
+  if (!checkApiKey()) return [];
 
-export const generateGuestGreeting = async (guestName: string, occasion: string, eventType: string, lang: Language): Promise<string> => {
   try {
-    // Fix: Initializing with process.env.API_KEY directly.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const langText = lang === 'ru' ? 'русский' : 'English';
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Write a warm, professional yet festive personalized message for a guest named ${guestName} for the occasion of ${occasion}. Mention our previous collaboration at a "${eventType}" event. Keep it short for WhatsApp/Telegram. Language: ${langText}.`,
+    const prompt = `
+      Create ${count} "True or False" facts about "${topic}".
+      Language: ${lang}.
+      Format: JSON array of objects:
+      - question (string)
+      - options (array ["True", "False"] localized)
+      - correctAnswerIndex (0 for True, 1 for False)
+      
+      Strictly return ONLY valid JSON.
+    `;
+
+    const response = await client.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: { role: 'user', parts: [{ text: prompt }] },
+      config: { responseMimeType: 'application/json' }
     });
-    return response.text?.trim() || `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
-  } catch (e) {
-    return `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
+
+    const text = response.text();
+    if (!text) return [];
+
+    const cleanText = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanText);
+  } catch (error) {
+    console.error("Believe/Not Error:", error);
+    return [];
   }
 };
 
-export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" = "1K"): Promise<string | null> => {
+/**
+ * Генерация изображений (Imagen 3 FAST)
+ * Изменено на быструю модель!
+ */
+export const generateAiImage = async (prompt: string): Promise<string | null> => {
+  if (!checkApiKey()) return null;
+
   try {
-    // Fix: Initializing with process.env.API_KEY and using recommended model gemini-2.5-flash-image.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: prompt }],
-      },
+    // ИСПОЛЬЗУЕМ FAST-ВЕРСИЮ МОДЕЛИ
+    // Она работает в 3-4 раза быстрее и "дешевле" для лимитов
+    const response = await client.models.generateImages({
+      model: 'imagen-3.0-fast-generate-001', 
+      prompt: prompt,
       config: {
-        imageConfig: {
-          aspectRatio: "1:1"
-        }
+        numberOfImages: 1,
+        aspectRatio: '1:1',
+        // Ослабляем фильтры, чтобы не блокировало безобидные запросы
+        safetyFilterLevel: 'block_only_high', 
+        personGeneration: 'allow_adult' 
       }
     });
 
-    // Fix: Iterating through parts to find the inlineData image part as per image generation guidelines.
-    const parts = response.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      if (part.inlineData) {
-        const base64EncodeString: string = part.inlineData.data;
-        return `data:${part.inlineData.mimeType};base64,${base64EncodeString}`;
-      }
+    if (response.generatedImages && response.generatedImages.length > 0) {
+      const imgData = response.generatedImages[0].image.base64;
+      return `data:image/jpeg;base64,${imgData}`;
     }
     
     return null;
-  } catch (e) {
-    console.error("Gemini image generation failed, using fallback", e);
-    const width = 1024;
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${width}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux`;
+  } catch (error: any) {
+    console.error("Image Gen Error:", error);
+    if (error.status === 403) {
+        alert("Ошибка доступа (403). Проверьте биллинг в Google Cloud.");
+    } else if (error.status === 429) {
+        alert("Слишком много запросов. Подождите минуту!");
+    }
+    return null;
   }
+};
+
+// Заглушка для совместимости
+export const generateGuestGreeting = async (name: string): Promise<string> => {
+    return `Welcome, ${name}!`;
 };
