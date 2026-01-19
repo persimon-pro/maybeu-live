@@ -161,25 +161,37 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
      }
   }, [isJoined]);
 
-  // ЛОГИКА ТРЯСКИ (SHAKE IT)
+  // ЛОГИКА ТРЯСКИ (SHAKE IT) - ОБНОВЛЕННАЯ
   useEffect(() => {
     if (gameState?.gameType === GameType.SHAKE_IT && permissionGranted && joinedEvent) {
       let lastX = 0, lastY = 0, lastZ = 0;
       let lastUpdate = 0;
-      const SHAKE_THRESHOLD = 15;
+      // ПОРОГ ЧУВСТВИТЕЛЬНОСТИ
+      // 15 - было слишком чувствительно (считало на столе)
+      // 25 - нужно трясти сильнее (отсекает дрожание)
+      const SHAKE_THRESHOLD = 25; 
       const MAX_SHAKES = 150; 
 
       const handleMotion = (e: DeviceMotionEvent) => {
         if (shakeCount >= MAX_SHAKES) return;
 
+        // Используем accelerationIncludingGravity, так как он поддерживается везде
         const current = e.accelerationIncludingGravity;
         if (!current) return;
         
         const curTime = Date.now();
-        if ((curTime - lastUpdate) > 100) {
+        if ((curTime - lastUpdate) > 100) { // Проверка каждые 100мс
           const diffTime = curTime - lastUpdate;
           lastUpdate = curTime;
           
+          // Фильтр "первого кадра": если это первое измерение, просто запоминаем позицию
+          if (lastX === 0 && lastY === 0 && lastZ === 0) {
+             lastX = current.x!;
+             lastY = current.y!;
+             lastZ = current.z!;
+             return;
+          }
+
           const speed = Math.abs(current.x! + current.y! + current.z! - lastX - lastY - lastZ) / diffTime * 10000;
           
           if (speed > SHAKE_THRESHOLD) {
@@ -287,7 +299,6 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
     if (window.navigator.vibrate) window.navigator.vibrate(20);
   };
 
-  // --- ЛОГИКА КАЛЬКУЛЯТОРА ---
   const handleCalcPress = (btn: string) => {
     if (btn === 'C') {
       setCalcExpression('');
@@ -295,12 +306,10 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
       setCalcExpression(prev => prev.slice(0, -1));
     } else if (btn === '=') {
       try {
-        // Простой eval для калькулятора. В рамках клиентского приложения это безопасно,
-        // так как ввод ограничен кнопками.
         // eslint-disable-next-line no-eval
         const res = eval(calcExpression).toString();
-        setQuestInput(res); // Подставляем результат в поле ответа
-        setIsCalculatorOpen(false); // Закрываем калькулятор
+        setQuestInput(res); 
+        setIsCalculatorOpen(false); 
         setCalcExpression('');
       } catch {
         setCalcExpression('Error');
