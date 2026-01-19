@@ -1,13 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Инициализация клиента с использованием API ключа из переменных окружения
-// или жестко заданного ключа (для простоты в этом проекте)
+// Инициализация клиента
+// ВАЖНО: Убедитесь, что ваш API ключ активен и не имеет ограничений (Billing)
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "ВАШ_КЛЮЧ_ЗДЕСЬ"; 
 
 const client = new GoogleGenAI({ apiKey });
 
 /**
  * Генерация вопросов для квиза
+ * Используем gemini-1.5-flash — самую быструю стабильную модель
  */
 export const generateQuizQuestions = async (topic: string, lang: 'ru' | 'en', count: number = 5, mood: string = 'fun'): Promise<any[]> => {
   try {
@@ -29,12 +30,11 @@ export const generateQuizQuestions = async (topic: string, lang: 'ru' | 'en', co
         }
       ]
       
-      Strictly return ONLY valid JSON.
+      Strictly return ONLY valid JSON. No markdown code blocks.
     `;
 
-    // Используем быструю модель Flash для текстовой генерации
     const response = await client.models.generateContent({
-      model: 'gemini-2.0-flash', 
+      model: 'gemini-1.5-flash', // Возвращаем стабильную версию
       contents: { role: 'user', parts: [{ text: prompt }] },
       config: {
         responseMimeType: 'application/json'
@@ -44,15 +44,19 @@ export const generateQuizQuestions = async (topic: string, lang: 'ru' | 'en', co
     const text = response.text();
     if (!text) return [];
     
-    return JSON.parse(text);
+    // Очистка от маркдауна на всякий случай
+    const cleanText = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (error) {
     console.error("Error generating quiz:", error);
+    alert("Ошибка генерации квиза. Проверьте API ключ или попробуйте позже.");
     return [];
   }
 };
 
 /**
  * Генерация вопросов "Верю / Не верю"
+ * Также используем gemini-1.5-flash
  */
 export const generateBelieveNotQuestions = async (topic: string, lang: 'ru' | 'en', count: number = 5): Promise<any[]> => {
   try {
@@ -64,11 +68,11 @@ export const generateBelieveNotQuestions = async (topic: string, lang: 'ru' | 'e
       - options (array ["True", "False"] or localized equivalent)
       - correctAnswerIndex (0 for True, 1 for False)
       
-      Strictly return ONLY valid JSON.
+      Strictly return ONLY valid JSON. No markdown code blocks.
     `;
 
     const response = await client.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-1.5-flash',
       contents: { role: 'user', parts: [{ text: prompt }] },
       config: {
         responseMimeType: 'application/json'
@@ -78,7 +82,8 @@ export const generateBelieveNotQuestions = async (topic: string, lang: 'ru' | 'e
     const text = response.text();
     if (!text) return [];
 
-    return JSON.parse(text);
+    const cleanText = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (error) {
     console.error("Error generating believe/not:", error);
     return [];
@@ -87,25 +92,24 @@ export const generateBelieveNotQuestions = async (topic: string, lang: 'ru' | 'e
 
 /**
  * Генерация изображения по описанию (ИИ Арт)
- * Оптимизировано для скорости!
+ * Используем стандартную модель imagen-3.0-generate-001
  */
 export const generateAiImage = async (prompt: string): Promise<string | null> => {
   try {
-    // ВАЖНО: Используем модель 'imagen-3.0-fast-generate-001'
-    // Она работает в 3-4 раза быстрее обычной версии.
+    // Используем стабильную модель для картинок
     const response = await client.models.generateImages({
-      model: 'imagen-3.0-fast-generate-001', 
+      model: 'imagen-3.0-generate-001', 
       prompt: prompt,
       config: {
         numberOfImages: 1,
         aspectRatio: '1:1',
-        // Отключаем строгий фильтр безопасности для ускорения и меньшего числа ложных блокировок
-        safetyFilterLevel: 'block_low_and_above', 
+        // Фильтр безопасности: block_only_high (блокировать только явный треш)
+        // Это позволяет генерировать больше веселых картинок без ложных блокировок
+        safetyFilterLevel: 'block_only_high', 
         personGeneration: 'allow_adult' 
       }
     });
 
-    // Получаем base64 первого изображения
     if (response.generatedImages && response.generatedImages.length > 0) {
       const imgData = response.generatedImages[0].image.base64;
       return `data:image/jpeg;base64,${imgData}`;
@@ -114,6 +118,7 @@ export const generateAiImage = async (prompt: string): Promise<string | null> =>
     return null;
   } catch (error) {
     console.error("Error generating image:", error);
+    // Частая ошибка - Safety Filter. Можно вывести алерт пользователю.
     return null;
   }
 };
