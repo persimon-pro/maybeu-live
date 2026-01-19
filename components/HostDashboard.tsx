@@ -104,10 +104,12 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
 
   const t = TRANSLATIONS[lang];
 
-  // ЗАГРУЗКА СОБЫТИЙ ИЗ FIREBASE
+  // ЗАГРУЗКА СОБЫТИЙ ИЗ FIREBASE (С ФИЛЬТРАЦИЕЙ БИТЫХ ДАННЫХ)
   useEffect(() => {
     const unsubscribe = FirebaseService.subscribeToAllEvents((data) => {
-      setEvents(data);
+      // Фильтруем список: оставляем только те события, у которых есть ID
+      const validEvents = (data || []).filter((e: any) => e && e.id);
+      setEvents(validEvents);
     });
     return () => unsubscribe();
   }, []);
@@ -157,6 +159,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
   };
 
   const handleDeleteEvent = (id: string) => {
+    if (!id) return; // Защита от удаления пустого ID
     FirebaseService.deleteEventFromDB(id);
     if (activeEvent?.id === id) {
       setActiveEvent(null);
@@ -256,7 +259,6 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
   const handleDownloadDocx = async () => {
     if (!activeEvent) return;
 
-    // Подготовка строк таблицы
     const tableRows = (activeEvent.timetable || []).map(step => 
       new TableRow({
         children: [
@@ -287,7 +289,6 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
       })
     );
 
-    // Добавляем шапку таблицы
     tableRows.unshift(
       new TableRow({
         tableHeader: true,
@@ -317,7 +318,9 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
           }),
           new Paragraph({
             children: [
-              new TextRun({ text: `Дата: ${activeEvent.date}`, bold: true, size: 28})
+              new TextRun({ text: `Дата: ${activeEvent.date}`, bold: true, size: 28 }),
+              new TextRun({ text: `\nЛокация: ${activeEvent.location || 'Не указана'}`, size: 24 }),
+              new TextRun({ text: `\nКод доступа: ${activeEvent.code}`, color: "4F46E5", size: 24 })
             ],
             spacing: { after: 400 }
           }),
@@ -342,7 +345,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
           }),
           new Paragraph({
             children: [
-              new TextRun({ text: "Контакты:", bold: true, size: 24 }),
+              new TextRun({ text: "\nКонтакты:", bold: true, size: 24 }),
               new TextRun({ text: `\n${activeEvent.contacts || 'Нет контактов'}`, size: 24 })
             ]
           })
@@ -413,7 +416,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
                 </div>
               ) : events.map(event => (
                 <div 
-                  key={event.id}
+                  key={event.id || Math.random()} // Защита ключа
                   onClick={() => setActiveEvent(event)}
                   className={`bg-slate-900 border-2 p-5 rounded-2xl transition-all cursor-pointer group relative overflow-hidden ${activeEvent?.id === event.id ? 'border-indigo-500 ring-4 ring-indigo-500/10' : 'border-slate-800 hover:border-slate-700'}`}
                 >
@@ -464,7 +467,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
                   </div>
                   <div className="mt-4 flex justify-between items-end">
                     <div>
-                      <h3 className="text-2xl font-black text-white">{event.name}</h3>
+                      <h3 className="text-2xl font-black text-white">{event.name || 'Без названия'}</h3>
                       <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-1">{t.code}: <span className="text-indigo-400 font-mono">{event.code}</span></p>
                     </div>
                   </div>
@@ -474,6 +477,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
           </div>
         )}
 
+        {/* ... (Остальной код табов INFO и TIMING без изменений) ... */}
         {tab === 'INFO' && activeEvent && (
           <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-right-4">
              <header className="flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-900 p-8 rounded-[40px] border border-slate-800">
@@ -482,7 +486,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
                       <Info className="text-white" size={32} />
                    </div>
                    <div>
-                      <h2 className="text-3xl font-black text-white italic">{activeEvent.name}</h2>
+                      <h2 className="text-3xl font-black text-white italic">{activeEvent.name || 'Без названия'}</h2>
                       <p className="text-slate-400 font-bold uppercase tracking-[0.2em]">{activeEvent.code} — {activeEvent.date}</p>
                    </div>
                 </div>

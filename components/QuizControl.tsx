@@ -39,7 +39,7 @@ const TRANSLATIONS = {
     shakeDesc: 'Зрители должны трясти свои телефоны как можно сильнее.',
     shakeStart: 'СТАРТ 10 СЕКУНД!',
     pushTitle: 'ГОНКА КЛИКОВ: ЖМИ!',
-    pushDesc: 'Кто быстрее нажмет на кнопку 50 раз? Участники соревнуются в скорости на экране.',
+    pushDesc: 'Кто быстрее нажмет на кнопку 50 раз? Нажимайте только одним пальцем, иначе сломаете телефон!',
     pushStart: 'ЗАПУСТИТЬ ОТСЧЕТ 10 СЕК',
     gameEnd: 'Завершить игру и итоги',
     artTitle: 'ИИ Арт-Битва',
@@ -97,7 +97,7 @@ const TRANSLATIONS = {
     shakeDesc: 'Audience must shake their phones as hard as they can.',
     shakeStart: 'START 10 SECONDS!',
     pushTitle: 'CLICK RACE: PUSH IT!',
-    pushDesc: 'Who can tap 50 times faster? Participants race on the screen.',
+    pushDesc: 'Who can tap 50 times faster? Press with only one finger, otherwise you will break the phone!',
     pushStart: 'START 10 SEC COUNTDOWN',
     gameEnd: 'Finish and Show Results',
     artTitle: 'AI Art Battle',
@@ -129,7 +129,7 @@ const TRANSLATIONS = {
 };
 
 const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>(activeEvent.questions || []);
   const [currentIdx, setCurrentIdx] = useState<number>(-1); 
   const [gameMode, setGameMode] = useState<GameType>(GameType.QUIZ);
   const [questStage, setQuestStage] = useState<number>(1);
@@ -156,18 +156,18 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    localStorage.setItem('game_state', JSON.stringify({
-      gameType: gameMode,
-      currentIdx,
-      questStage,
-      isActive: currentIdx >= 0 || countdown !== null,
-      isCountdown: countdown !== null,
-      countdownValue: countdown,
-      questions,
-      artTheme,
-      timestamp: Date.now()
-    }));
+    setQuestions(activeEvent.questions || []);
+  }, [activeEvent]);
 
+  const saveQuestionsToFirebase = (newQuestions: QuizQuestion[]) => {
+    setQuestions(newQuestions); 
+    FirebaseService.saveEventToDB({
+      ...activeEvent,
+      questions: newQuestions
+    });
+  };
+
+  useEffect(() => {
     FirebaseService.syncGameState({
       gameType: gameMode,
       currentIdx,
@@ -179,18 +179,12 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       artTheme,
       timestamp: Date.now()
     });
-
   }, [gameMode, currentIdx, questStage, questions, artTheme, countdown]);
 
   const handleClearScreen = () => {
     setCurrentIdx(-1);
     setCountdown(null);
     setQuestStage(1);
-    localStorage.removeItem('game_state');
-    localStorage.removeItem('guest_images');
-    localStorage.removeItem('race_progress');
-    
-    // Сброс в Firebase
     FirebaseService.resetGameData(activeEvent.code);
   };
 
@@ -199,22 +193,13 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       startPushCountdown();
       return;
     }
-
     if (currentIdx === -1) {
       setCurrentIdx(0);
-      localStorage.setItem(`quiz_answers_${activeEvent.code}`, JSON.stringify({}));
-      if (gameMode === GameType.IMAGE_GEN) {
-        localStorage.setItem('guest_images', JSON.stringify([]));
-      }
-      if (gameMode === GameType.QUEST) {
-        localStorage.setItem(`quest_responses_${activeEvent.code}`, JSON.stringify({}));
-      }
     }
   };
 
   const startPushCountdown = () => {
-    // Сбрасываем прогресс перед началом новой гонки
-    localStorage.removeItem('race_progress');
+    FirebaseService.resetGameData(activeEvent.code); // Сброс перед гонкой
     setCountdown(10);
     
     if (countdownInterval.current) clearInterval(countdownInterval.current);
@@ -223,7 +208,7 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
           clearInterval(countdownInterval.current);
-          setCurrentIdx(0); // Начинаем саму гонку
+          setCurrentIdx(0); 
           return null;
         }
         return prev - 1;
@@ -256,7 +241,9 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     } else if (gameMode === GameType.BELIEVE_NOT) {
       qs = await generateBelieveNotQuestions(theme, lang, aiCount);
     }
-    setQuestions(prev => [...prev, ...qs]);
+    
+    const updatedList = [...questions, ...qs];
+    saveQuestionsToFirebase(updatedList); 
     setIsGenerating(false);
   };
 
@@ -277,7 +264,7 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       options: editOptions,
       correctAnswerIndex: editCorrectIdx
     };
-    setQuestions(updated);
+    saveQuestionsToFirebase(updated); 
     setEditingIdx(null);
   };
 
@@ -291,14 +278,17 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       correctAnswerIndex: manualCorrect
     };
 
-    setQuestions(prev => [...prev, newQ]);
+    const updatedList = [...questions, newQ];
+    saveQuestionsToFirebase(updatedList); 
+    
     setManualQ('');
     setManualOptions(['', '', '', '']);
     setManualCorrect(0);
   };
 
   const removeQuestion = (idx: number) => {
-    setQuestions(prev => prev.filter((_, i) => i !== idx));
+    const updatedList = questions.filter((_, i) => i !== idx);
+    saveQuestionsToFirebase(updatedList); 
     if (currentIdx === idx) setCurrentIdx(-1);
   };
 
@@ -308,8 +298,8 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-wrap gap-3 bg-slate-900/50 p-2 rounded-2xl border border-slate-800 shadow-inner">
-        <button onClick={() => { setGameMode(GameType.QUIZ); setCurrentIdx(-1); setQuestions([]); setCountdown(null); }} className={`px-6 py-3 rounded-xl flex items-center gap-2 font-black transition-all text-xs uppercase ${gameMode === GameType.QUIZ ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}><Zap size={16}/> {t.quiz}</button>
-        <button onClick={() => { setGameMode(GameType.BELIEVE_NOT); setCurrentIdx(-1); setQuestions([]); setCountdown(null); }} className={`px-6 py-3 rounded-xl flex items-center gap-2 font-black transition-all text-xs uppercase ${gameMode === GameType.BELIEVE_NOT ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}><HelpCircle size={16}/> {t.believe}</button>
+        <button onClick={() => { setGameMode(GameType.QUIZ); setCurrentIdx(-1); setCountdown(null); }} className={`px-6 py-3 rounded-xl flex items-center gap-2 font-black transition-all text-xs uppercase ${gameMode === GameType.QUIZ ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}><Zap size={16}/> {t.quiz}</button>
+        <button onClick={() => { setGameMode(GameType.BELIEVE_NOT); setCurrentIdx(-1); setCountdown(null); }} className={`px-6 py-3 rounded-xl flex items-center gap-2 font-black transition-all text-xs uppercase ${gameMode === GameType.BELIEVE_NOT ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}><HelpCircle size={16}/> {t.believe}</button>
         <button onClick={() => { setGameMode(GameType.QUEST); setCurrentIdx(-1); setQuestStage(1); setCountdown(null); }} className={`px-6 py-3 rounded-xl flex items-center gap-2 font-black transition-all text-xs uppercase ${gameMode === GameType.QUEST ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}><Rocket size={16}/> {t.quest}</button>
         <button onClick={() => { setGameMode(GameType.SHAKE_IT); setCurrentIdx(-1); setCountdown(null); }} className={`px-6 py-3 rounded-xl flex items-center gap-2 font-black transition-all text-xs uppercase ${gameMode === GameType.SHAKE_IT ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}><RotateCcw size={16}/> {t.shake}</button>
         <button onClick={() => { setGameMode(GameType.PUSH_IT); setCurrentIdx(-1); setCountdown(null); }} className={`px-6 py-3 rounded-xl flex items-center gap-2 font-black transition-all text-xs uppercase ${gameMode === GameType.PUSH_IT ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}><MousePointer2 size={16}/> {t.push}</button>

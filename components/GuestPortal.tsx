@@ -9,6 +9,7 @@ import { generateAiImage } from '../services/geminiService';
 interface Props {
   activeEvent: LiveEvent | null;
   lang: Language;
+  initialCode?: string;
 }
 
 const TRANSLATIONS = {
@@ -28,6 +29,7 @@ const TRANSLATIONS = {
     enableSensor: 'АКТИВИРОВАТЬ СЕНСОР',
     pushTitle: 'ЖМИ КАК МОЖНО БЫСТРЕЕ!',
     pushBtn: 'ЖМИ!',
+    pushWarn: 'НАЖИМАЙТЕ ТОЛЬКО ОДНИМ ПАЛЬЦЕМ, ИНАЧЕ СЛОМАЕТЕ ТЕЛЕФОН!',
     aiArtBattle: 'ИИ АРТ-БИТВА',
     aiArtDesc: 'Опишите ваш шедевр и отправьте его на главный экран!',
     imgDesc: 'Что нарисовать?',
@@ -71,6 +73,7 @@ const TRANSLATIONS = {
     enableSensor: 'ENABLE SENSOR',
     pushTitle: 'PUSH AS FAST AS YOU CAN!',
     pushBtn: 'PUSH!',
+    pushWarn: 'PRESS WITH ONE FINGER ONLY OR YOU WILL BREAK YOUR PHONE!',
     aiArtBattle: 'AI ART BATTLE',
     aiArtDesc: 'Describe your masterpiece and send it to the screen!',
     imgDesc: 'What to draw?',
@@ -100,11 +103,11 @@ const TRANSLATIONS = {
   }
 };
 
-const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
+const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initialCode = '' }) => {
   const [gameState, setGameState] = useState<any>(null);
   const [isJoined, setIsJoined] = useState(false);
   const [name, setName] = useState('');
-  const [eventCode, setEventCode] = useState('');
+  const [eventCode, setEventCode] = useState(initialCode);
   const [error, setError] = useState('');
   const [joinedEvent, setJoinedEvent] = useState<LiveEvent | null>(null);
   
@@ -160,10 +163,9 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
       let lastX = 0, lastY = 0, lastZ = 0;
       let lastUpdate = 0;
       const SHAKE_THRESHOLD = 15;
-      const MAX_SHAKES = 150; // Цель победы
+      const MAX_SHAKES = 150; 
 
       const handleMotion = (e: DeviceMotionEvent) => {
-        // Если уже достигли максимума, не считаем дальше
         if (shakeCount >= MAX_SHAKES) return;
 
         const current = e.accelerationIncludingGravity;
@@ -178,17 +180,13 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
           
           if (speed > SHAKE_THRESHOLD) {
              setShakeCount(prev => {
-               if (prev >= MAX_SHAKES) return prev; // Двойная защита
+               if (prev >= MAX_SHAKES) return prev;
                const newCount = prev + 1;
-               
-               // Отправляем в Firebase
                if (newCount % 5 === 0 || newCount === MAX_SHAKES) {
                  FirebaseService.updateShakeCount(joinedEvent.code, name, newCount);
                }
                return newCount;
              });
-             
-             // Вибрация (обычная при тряске, длинная при победе)
              if (window.navigator.vibrate) {
                 if (shakeCount + 1 >= MAX_SHAKES) window.navigator.vibrate([200, 100, 200]);
                 else window.navigator.vibrate(50);
@@ -339,7 +337,8 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
               placeholder={t.codePlaceholder}
               value={eventCode}
               onChange={(e) => setEventCode(e.target.value.toUpperCase())}
-              className="w-full bg-indigo-900/50 border-2 border-indigo-400/30 rounded-2xl px-6 py-4 text-white text-xl font-mono font-bold placeholder:text-indigo-300 focus:border-white focus:outline-none transition-all uppercase"
+              readOnly={!!initialCode}
+              className={`w-full bg-indigo-900/50 border-2 border-indigo-400/30 rounded-2xl px-6 py-4 text-white text-xl font-mono font-bold placeholder:text-indigo-300 focus:border-white focus:outline-none transition-all uppercase ${initialCode ? 'opacity-70 cursor-not-allowed' : ''}`}
             />
             <input 
               type="text" 
@@ -546,6 +545,7 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
             <>
               <div className="text-center">
                  <h2 className="text-3xl font-black text-white italic uppercase mb-2">{t.pushTitle}</h2>
+                 <p className="text-rose-500 font-bold text-xs md:text-sm mb-4 animate-pulse px-4">{t.pushWarn}</p>
                  <div className="text-6xl font-black text-blue-400 font-mono">{pushCount}/50</div>
               </div>
               <button 
