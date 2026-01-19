@@ -433,45 +433,32 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
 
   return (
     <div className="flex-1 flex flex-col p-4 bg-indigo-950 overflow-y-auto">
-{(gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && (
+      {(gameState.gameType === GameType.QUIZ || gameState.gameType === GameType.BELIEVE_NOT) && (
         <div className="flex flex-col space-y-6">
           <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20">
             <h2 className="text-2xl font-bold text-white leading-tight">{gameState.questions[gameState.currentIdx]?.question}</h2>
           </div>
           <div className={`grid gap-4 ${gameState.gameType === GameType.BELIEVE_NOT ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {gameState.questions[gameState.currentIdx]?.options.map((opt: string, i: number) => {
-              // ЛОГИКА ПОДСВЕТКИ ОТВЕТОВ
-              const isRevealed = gameState.isAnswerRevealed;
-              const isCorrect = i === gameState.questions[gameState.currentIdx]?.correctAnswerIndex;
-              const isSelected = answerSubmitted === i;
-              
-              let btnClass = 'bg-white text-indigo-900 border-indigo-200';
-              
-              if (isRevealed) {
-                 if (isCorrect) btnClass = 'bg-emerald-500 border-emerald-700 text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] scale-105';
-                 else if (isSelected) btnClass = 'bg-rose-500 border-rose-700 text-white opacity-50';
-                 else btnClass = 'bg-slate-800 border-slate-700 text-slate-500 opacity-50';
-              } else if (isSelected) {
-                 btnClass = 'bg-amber-400 border-amber-600 text-amber-900';
-              } else if (answerSubmitted !== null) {
-                 btnClass = 'bg-white/5 border-white/10 text-white/30';
-              } else if (i === 0 && gameState.gameType === GameType.BELIEVE_NOT) {
-                 btnClass = 'bg-emerald-500 border-emerald-700 text-white';
-              } else if (i === 1 && gameState.gameType === GameType.BELIEVE_NOT) {
-                 btnClass = 'bg-rose-500 border-rose-700 text-white';
-              }
-
-              return (
-                <button 
-                  key={i}
-                  disabled={answerSubmitted !== null || isRevealed}
-                  onClick={() => submitQuestAnswer(i)}
-                  className={`w-full py-8 px-6 rounded-3xl text-center text-xl font-black transition-all transform active:scale-95 border-b-8 ${btnClass}`}
-                >
-                  <span>{opt}</span>
-                </button>
-              );
-            })}
+            {gameState.questions[gameState.currentIdx]?.options.map((opt: string, i: number) => (
+              <button 
+                key={i}
+                disabled={answerSubmitted !== null}
+                onClick={() => submitQuestAnswer(i)}
+                className={`w-full py-8 px-6 rounded-3xl text-center text-xl font-black transition-all transform active:scale-95 border-b-8 ${
+                  answerSubmitted === i 
+                  ? 'bg-amber-400 border-amber-600 text-amber-900' 
+                  : answerSubmitted !== null 
+                    ? 'bg-white/5 border-white/10 text-white/30'
+                    : i === 0 && gameState.gameType === GameType.BELIEVE_NOT
+                        ? 'bg-emerald-500 border-emerald-700 text-white'
+                        : i === 1 && gameState.gameType === GameType.BELIEVE_NOT
+                            ? 'bg-rose-500 border-rose-700 text-white'
+                            : 'bg-white text-indigo-900 border-indigo-200'
+                }`}
+              >
+                <span>{opt}</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
