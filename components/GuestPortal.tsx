@@ -2,7 +2,7 @@ import { FirebaseService } from '../services/firebase';
 import React, { useState, useEffect, useRef } from 'react';
 import { LiveEvent, GameType, Language, GuestRecord } from '../types';
 import * as LucideIcons from 'lucide-react';
-const { PlayCircle: PlayIcon, Smartphone: PhoneIcon, Zap: ZapIcon, ShieldAlert: AlertIcon, Send: SendIcon, ImageIcon: ImgIcon, Sparkles: SparkIcon, Loader2: LoaderIcon, CheckCircle2: CheckIcon, Clock: ClockIcon, User: UserIcon, Calendar: CalIcon, MessageSquare: MsgIcon, Users, Camera, Calculator, Upload, Check } = LucideIcons;
+const { PlayCircle: PlayIcon, Smartphone: PhoneIcon, Zap: ZapIcon, ShieldAlert: AlertIcon, Send: SendIcon, ImageIcon: ImgIcon, Sparkles: SparkIcon, Loader2: LoaderIcon, CheckCircle2: CheckIcon, Clock: ClockIcon, User: UserIcon, Calendar: CalIcon, MessageSquare: MsgIcon, Users, Camera, Calculator, Upload, Check, X, Delete } = LucideIcons;
 
 import { generateAiImage } from '../services/geminiService';
 
@@ -124,6 +124,10 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
 
   const [questInput, setQuestInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Калькулятор
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [calcExpression, setCalcExpression] = useState('');
 
   const [leadName, setLeadName] = useState('');
   const [leadContact, setLeadContact] = useState('');
@@ -281,6 +285,30 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
     setPushCount(newCount);
     FirebaseService.updateRaceProgress(joinedEvent.code, name, newCount);
     if (window.navigator.vibrate) window.navigator.vibrate(20);
+  };
+
+  // --- ЛОГИКА КАЛЬКУЛЯТОРА ---
+  const handleCalcPress = (btn: string) => {
+    if (btn === 'C') {
+      setCalcExpression('');
+    } else if (btn === 'DEL') {
+      setCalcExpression(prev => prev.slice(0, -1));
+    } else if (btn === '=') {
+      try {
+        // Простой eval для калькулятора. В рамках клиентского приложения это безопасно,
+        // так как ввод ограничен кнопками.
+        // eslint-disable-next-line no-eval
+        const res = eval(calcExpression).toString();
+        setQuestInput(res); // Подставляем результат в поле ответа
+        setIsCalculatorOpen(false); // Закрываем калькулятор
+        setCalcExpression('');
+      } catch {
+        setCalcExpression('Error');
+        setTimeout(() => setCalcExpression(''), 1000);
+      }
+    } else {
+      setCalcExpression(prev => prev + btn);
+    }
   };
 
   const handleGenerateImage = async () => {
@@ -445,7 +473,6 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
           </div>
           <div className={`grid gap-4 ${gameState.gameType === GameType.BELIEVE_NOT ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {currentQuestion?.options?.map((opt: string, i: number) => {
-              // --- ЛОГИКА ПОДСВЕТКИ ОТВЕТОВ ДЛЯ ГОСТЯ ---
               const isRevealed = gameState.isAnswerRevealed;
               const isCorrect = i === currentQuestion.correctAnswerIndex;
               const isSelected = answerSubmitted === i;
@@ -453,11 +480,11 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
               let btnClass = 'bg-white text-indigo-900 border-indigo-200';
               
               if (isRevealed) {
-                 if (isCorrect) btnClass = 'bg-emerald-500 border-emerald-700 text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] scale-105'; // Зеленый для верного
-                 else if (isSelected) btnClass = 'bg-rose-500 border-rose-700 text-white opacity-50'; // Красный для ошибки
-                 else btnClass = 'bg-slate-800 border-slate-700 text-slate-500 opacity-50'; // Остальные серые
+                 if (isCorrect) btnClass = 'bg-emerald-500 border-emerald-700 text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] scale-105';
+                 else if (isSelected) btnClass = 'bg-rose-500 border-rose-700 text-white opacity-50';
+                 else btnClass = 'bg-slate-800 border-slate-700 text-slate-500 opacity-50';
               } else if (isSelected) {
-                 btnClass = 'bg-amber-400 border-amber-600 text-amber-900'; // Желтый при выборе
+                 btnClass = 'bg-amber-400 border-amber-600 text-amber-900';
               } else if (answerSubmitted !== null) {
                  btnClass = 'bg-white/5 border-white/10 text-white/30';
               } else if (i === 0 && gameState.gameType === GameType.BELIEVE_NOT) {
@@ -517,9 +544,15 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
 
                 {gameState.questStage === 3 && (
                    <div className="space-y-4">
-                      <div className="bg-white/10 p-6 rounded-3xl flex items-center justify-center mb-4">
-                        <Calculator size={48} className="text-white" />
-                      </div>
+                      {/* КНОПКА ОТКРЫТИЯ КАЛЬКУЛЯТОРА */}
+                      <button 
+                        onClick={() => { setIsCalculatorOpen(true); setCalcExpression(''); }}
+                        className="w-full bg-white/10 p-6 rounded-3xl flex items-center justify-center mb-4 active:bg-white/20 transition-all border-2 border-white/20"
+                      >
+                        <Calculator size={32} className="text-white mr-3" />
+                        <span className="text-white font-black text-lg">{t.questCalcBtn}</span>
+                      </button>
+
                       <input 
                         type="number"
                         value={questInput}
@@ -644,6 +677,36 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* МОДАЛЬНОЕ ОКНО КАЛЬКУЛЯТОРА */}
+      {isCalculatorOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+           <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="text-xl font-black text-white flex items-center gap-2"><Calculator size={20} /> Калькулятор</h3>
+                 <button onClick={() => setIsCalculatorOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-400 hover:text-white"><X size={20}/></button>
+              </div>
+              <div className="bg-black/50 p-4 rounded-xl mb-4 text-right">
+                 <div className="text-3xl font-mono font-bold text-white h-10">{calcExpression || '0'}</div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                 {['7','8','9','/'].map(b => (
+                    <button key={b} onClick={() => handleCalcPress(b)} className="aspect-square bg-slate-800 rounded-xl text-xl font-bold text-white active:scale-95 transition-all">{b}</button>
+                 ))}
+                 {['4','5','6','*'].map(b => (
+                    <button key={b} onClick={() => handleCalcPress(b)} className="aspect-square bg-slate-800 rounded-xl text-xl font-bold text-white active:scale-95 transition-all">{b}</button>
+                 ))}
+                 {['1','2','3','-'].map(b => (
+                    <button key={b} onClick={() => handleCalcPress(b)} className="aspect-square bg-slate-800 rounded-xl text-xl font-bold text-white active:scale-95 transition-all">{b}</button>
+                 ))}
+                 <button onClick={() => handleCalcPress('C')} className="aspect-square bg-rose-600 rounded-xl text-xl font-bold text-white active:scale-95 transition-all">C</button>
+                 <button onClick={() => handleCalcPress('0')} className="aspect-square bg-slate-800 rounded-xl text-xl font-bold text-white active:scale-95 transition-all">0</button>
+                 <button onClick={() => handleCalcPress('=')} className="aspect-square bg-emerald-600 rounded-xl text-xl font-bold text-white active:scale-95 transition-all">=</button>
+                 <button onClick={() => handleCalcPress('+')} className="aspect-square bg-slate-800 rounded-xl text-xl font-bold text-white active:scale-95 transition-all">+</button>
+              </div>
+           </div>
         </div>
       )}
     </div>
