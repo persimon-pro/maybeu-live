@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 // 1. ПОЛУЧЕНИЕ КЛЮЧА
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "ВАШ_КЛЮЧ_ЗДЕСЬ"; 
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyArOLbY23EpDcvCJsUkaH9MOUnu7KosVF4"; 
 
 const client = new GoogleGenAI({ apiKey });
 
