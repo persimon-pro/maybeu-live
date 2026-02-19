@@ -1,4 +1,5 @@
 import { FirebaseService } from '../services/firebase';
+import { auth } from '../services/firebase';
 import React, { useState, useEffect } from 'react';
 import { LiveEvent, GameType, Language, TimingItem } from '../types';
 import { Plus, Users, Calendar, Gamepad2, Database, ChevronRight, PlayCircle, X, Trash2, Edit2, MapPin, Clock, Briefcase, Info, Save, ListTodo, GripVertical, MonitorOff, MonitorCheck, AlertTriangle, Check, FileText, Download } from 'lucide-react';
