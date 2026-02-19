@@ -122,7 +122,9 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
 
   useEffect(() => {
     const unsubscribe = FirebaseService.subscribeToAllEvents((data) => {
-      const validEvents = (data || []).filter((e: any) => e && e.id);
+     const validEvents = (data || []).filter((e: any) => 
+        e && e.id && e.ownerId === auth.currentUser?.uid
+      );
       setEvents(validEvents);
     });
     return () => unsubscribe();
@@ -156,6 +158,7 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
     } else {
       const event: LiveEvent = {
         id: Math.random().toString(36).substr(2, 9),
+        ownerId: auth.currentUser?.uid,
         name: formData.name || 'Untitled',
         date: formData.date || new Date().toISOString().split('T')[0],
         code: formData.code || Math.random().toString(36).substr(2, 6).toUpperCase(),
