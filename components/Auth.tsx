@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 // ВНИМАНИЕ: Проверь, чтобы путь к твоему firebase.js был правильным.
 // Если Auth.jsx лежит в src/components, а firebase.js в src, то путь '../firebase'
-import { auth } from '../firebase'; 
+import { auth } from '../services/firebase'; 
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword 
