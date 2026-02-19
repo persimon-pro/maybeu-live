@@ -1,6 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, update, get, onValue, push, set, remove, child } from "firebase/database";
 
+// 1. Добавляем импорт модуля авторизации
+import { getAuth } from "firebase/auth";
+
 const firebaseConfig = {
   apiKey: "AIzaSyC-vmOaMUz_fBFjltcxp6RyNvyMmAmdqJ0",
   authDomain: "maybeu-live.firebaseapp.com",
@@ -14,6 +17,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+// 2. Инициализируем auth и экспортируем его для всего приложения
+export const auth = getAuth(app);
 
 export const FirebaseService = {
   // --- УПРАВЛЕНИЕ СОБЫТИЯМИ ---
@@ -131,4 +137,5 @@ export const FirebaseService = {
   subscribeToScreenStatus: (cb: (lastSeen: number) => void) => {
     return onValue(ref(db, 'screen_status/last_seen'), (s) => cb(s.val()));
   }
+
 };
