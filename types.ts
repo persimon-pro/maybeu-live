@@ -18,6 +18,7 @@ export interface QuizQuestion {
 
 export interface LiveEvent {
   id: string;
+  ownerId?: string;
   name: string;
   date: string;
   code: string;
