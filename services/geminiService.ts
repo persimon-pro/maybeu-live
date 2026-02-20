@@ -13,25 +13,26 @@ export const generateQuizQuestions = async (
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     
-    // Мы убрали responseSchema, так как она часто вызывает ошибку 400 Bad Request
+    // Мы убрали responseSchema для стабильности и полагаемся на текстовый промпт
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
       contents: `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.
-      Return STRICTLY a valid JSON array of objects. Do not use markdown blocks like \`\`\`json. Just return the raw array.
-      Each object MUST have this exact structure:
-      {"id": "unique_string", "question": "question text", "options": ["opt1", "opt2", "opt3", "opt4"], "correctAnswerIndex": 0}`,
+      Return STRICTLY a JSON array of objects. Do not use markdown blocks like \`\`\`json. Just return the pure array.
+      Format: [{"id": "q1", "question": "Text?", "options": ["A", "B", "C", "D"], "correctAnswerIndex": 0}]`,
+      config: {
+        responseMimeType: "application/json",
+      }
     });
     
     let text = response.text;
-    if (text) {
-      text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-      return JSON.parse(text);
-    }
-    throw new Error("Нейросеть вернула пустой ответ");
+    if (!text) throw new Error("Пустой ответ от сервера Google");
+    
+    const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanText);
   } catch (e: any) {
     console.error("AI Quiz error", e);
     // ВОТ ЭТО ОКНО ПОКАЖЕТ НАМ НАСТОЯЩУЮ ПРИЧИНУ ПОЛОМКИ
-    alert("Ошибка нейросети (Квиз): " + (e.message || "Неизвестная ошибка"));
+    alert("ОШИБКА НЕЙРОСЕТИ (КВИЗ):\n\n" + (e.message || "Неизвестная ошибка"));
     return getFallbackQuiz(topic, count);
   }
 };
@@ -57,26 +58,29 @@ export const generateBelieveNotQuestions = async (
     
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
-      contents: `Generate a list of ${count} interesting facts on the topic "${topic}" for a "Believe or Not" game. Some should be true, some should be surprisingly false. 
-      Return STRICTLY a valid JSON array of objects. Do not use markdown blocks like \`\`\`json. Just return the raw array.
-      Each object MUST have: "id" (string), "question" (the fact string), "correctAnswerIndex" (0 for True/Believe, 1 for False/Not Believe). Language: ${langText}.`,
+      contents: `Generate a list of ${count} interesting facts on the topic "${topic}" for a "Believe or Not" game. Some should be true, some should be false. 
+      Return STRICTLY a JSON array of objects. Do not use markdown blocks.
+      Format: [{"id": "bn1", "question": "Fact text?", "correctAnswerIndex": 0}] (0 for True, 1 for False). Language: ${langText}.`,
+      config: {
+        responseMimeType: "application/json",
+      }
     });
     
     let text = response.text;
-    if (text) {
-      text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-      const raw = JSON.parse(text);
-      return raw.map((item: any, idx: number) => ({
-        id: item.id || `bn-${idx}`,
-        question: item.question,
-        options: options,
-        correctAnswerIndex: item.correctAnswerIndex
-      }));
-    }
-    throw new Error("Нейросеть вернула пустой ответ");
+    if (!text) throw new Error("Пустой ответ от сервера Google");
+    
+    const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const raw = JSON.parse(cleanText);
+    return raw.map((item: any, idx: number) => ({
+      id: item.id || `bn-${idx}`,
+      question: item.question,
+      options: options,
+      correctAnswerIndex: item.correctAnswerIndex
+    }));
   } catch (e: any) {
     console.error("AI Believe Not error", e);
-    alert("Ошибка нейросети (Верю/Не Верю): " + (e.message || "Неизвестная ошибка"));
+    // ВОТ ЭТО ОКНО ПОКАЖЕТ НАМ НАСТОЯЩУЮ ПРИЧИНУ ПОЛОМКИ
+    alert("ОШИБКА НЕЙРОСЕТИ (ВЕРЮ/НЕ ВЕРЮ):\n\n" + (e.message || "Неизвестная ошибка"));
     return getFallbackBelieveNot(lang);
   }
 };
@@ -100,8 +104,7 @@ export const generateGuestGreeting = async (guestName: string, occasion: string,
       contents: `Write a warm, professional yet festive personalized message for a guest named ${guestName} for the occasion of ${occasion}. Mention our previous collaboration at a "${eventType}" event. Keep it short for WhatsApp/Telegram. Language: ${langText}.`,
     });
     return response.text?.trim() || `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
-  } catch (e: any) {
-    console.error("Greeting error", e);
+  } catch (e) {
     return `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
   }
 };
