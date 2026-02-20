@@ -109,7 +109,7 @@ const App: React.FC = () => {
         // Если залогинен - пускаем в Dashboard
         return <HostDashboard setActiveEvent={setActiveEvent} activeEvent={activeEvent} lang={lang} />;
       case 'GUEST':
-        return <GuestPortal activeEvent={activeEvent} lang={lang} />;
+        return <GuestPortal activeEvent={activeEvent} lang={lang} initialCode={new URLSearchParams(window.location.search).get('code') || ''} />;
       case 'SCREEN':
         return <BigScreenView activeEvent={activeEvent} lang={lang} />;
       default:
@@ -174,4 +174,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
