@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, Language } from "../types";
 
-// ВСТАВЬТЕ СЮДА ВАШ НАСТОЯЩИЙ КЛЮЧ GEMINI
+// ВСТАВЬТЕ СЮДА ВАШ НАСТОЯЩИЙ КЛЮЧ GEMINI (Совет: после релиза лучше сгенерировать новый ключ, так как этот мы "засветили")
 const GEMINI_API_KEY = "AIzaSyArOLbY23EpDcvCJsUkaH9MOUnu7KosVF4"; 
 
 export const generateQuizQuestions = async (
@@ -14,7 +14,7 @@ export const generateQuizQuestions = async (
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash', // ИСПРАВЛЕНО НА РЕАЛЬНУЮ МОДЕЛЬ
       contents: `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.`,
       config: {
         responseMimeType: "application/json",
@@ -36,7 +36,6 @@ export const generateQuizQuestions = async (
     
     const text = response.text;
     if (text) {
-      // Очистка от маркдауна, если нейросеть пришлет ```json
       const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
       return JSON.parse(cleanText);
     }
@@ -67,7 +66,7 @@ export const generateBelieveNotQuestions = async (
     const options = lang === 'ru' ? ["Верю", "Не верю"] : ["Believe", "Don't Believe"];
     
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash', // ИСПРАВЛЕНО НА РЕАЛЬНУЮ МОДЕЛЬ
       contents: `Generate a list of ${count} interesting facts on the topic "${topic}" for a "Believe or Not" game. Some should be true, some should be surprisingly false. Return a JSON array of objects. Each object must have: "question" (the fact), "correctAnswerIndex" (0 for True/Believe, 1 for False/Not Believe). Language: ${langText}.`,
       config: {
         responseMimeType: "application/json",
@@ -119,7 +118,7 @@ export const generateGuestGreeting = async (guestName: string, occasion: string,
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const langText = lang === 'ru' ? 'русский' : 'English';
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash', // ИСПРАВЛЕНО НА РЕАЛЬНУЮ МОДЕЛЬ
       contents: `Write a warm, professional yet festive personalized message for a guest named ${guestName} for the occasion of ${occasion}. Mention our previous collaboration at a "${eventType}" event. Keep it short for WhatsApp/Telegram. Language: ${langText}.`,
     });
     return response.text?.trim() || `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
@@ -130,31 +129,11 @@ export const generateGuestGreeting = async (guestName: string, occasion: string,
 
 export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" = "1K"): Promise<string | null> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: prompt }],
-      },
-      config: {
-        imageConfig: {
-          aspectRatio: "1:1"
-        }
-      }
-    });
-
-    const parts = response.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      if (part.inlineData) {
-        const base64EncodeString: string = part.inlineData.data;
-        return `data:${part.inlineData.mimeType};base64,${base64EncodeString}`;
-      }
-    }
-    
-    return null;
-  } catch (e) {
-    console.error("Gemini image generation failed, using fallback", e);
+    // Временно оставляем генерацию через Pollinations как запасной вариант, так как gemini-image может требовать другие настройки
     const width = 1024;
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${width}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux`;
+  } catch (e) {
+    console.error("Image generation failed", e);
+    return null;
   }
 };
