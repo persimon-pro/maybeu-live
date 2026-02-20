@@ -1,10 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizQuestion, Language } from "../types";
 
-/**
- * AI Service for generating interactive content using Google Gemini API.
- * The API key is obtained exclusively from the environment variable process.env.API_KEY.
- */
+// ВСТАВЬТЕ СЮДА ВАШ НАСТОЯЩИЙ КЛЮЧ GEMINI
+const GEMINI_API_KEY = "AIzaSyArOLbY23EpDcvCJsUkaH9MOUnu7KosVF4"; 
 
 export const generateQuizQuestions = async (
   topic: string, 
@@ -13,8 +11,7 @@ export const generateQuizQuestions = async (
   mood: string = "fun"
 ): Promise<QuizQuestion[]> => {
   try {
-    // Fix: Initializing Gemini AI exclusively with process.env.API_KEY as per guidelines.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -36,10 +33,12 @@ export const generateQuizQuestions = async (
         }
       }
     });
-    // Fix: Accessing text content directly from the property as per extracting text guidelines.
+    
     const text = response.text;
     if (text) {
-      return JSON.parse(text.trim());
+      // Очистка от маркдауна, если нейросеть пришлет ```json
+      const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      return JSON.parse(cleanText);
     }
     return getFallbackQuiz(topic, count);
   } catch (e) {
@@ -63,8 +62,7 @@ export const generateBelieveNotQuestions = async (
   count: number = 5
 ): Promise<QuizQuestion[]> => {
   try {
-    // Fix: Using mandatory initialization pattern with process.env.API_KEY.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const langText = lang === 'ru' ? 'русском' : 'English';
     const options = lang === 'ru' ? ["Верю", "Не верю"] : ["Believe", "Don't Believe"];
     
@@ -89,13 +87,17 @@ export const generateBelieveNotQuestions = async (
     });
     
     const text = response.text;
-    const raw = text ? JSON.parse(text.trim()) : [];
-    return raw.map((item: any, idx: number) => ({
-      id: item.id || `bn-${idx}`,
-      question: item.question,
-      options: options,
-      correctAnswerIndex: item.correctAnswerIndex
-    }));
+    if (text) {
+      const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const raw = JSON.parse(cleanText);
+      return raw.map((item: any, idx: number) => ({
+        id: item.id || `bn-${idx}`,
+        question: item.question,
+        options: options,
+        correctAnswerIndex: item.correctAnswerIndex
+      }));
+    }
+    return getFallbackBelieveNot(lang);
   } catch (e) {
     console.error("AI Believe Not error, using fallback", e);
     return getFallbackBelieveNot(lang);
@@ -114,8 +116,7 @@ const getFallbackBelieveNot = (lang: Language): QuizQuestion[] => {
 
 export const generateGuestGreeting = async (guestName: string, occasion: string, eventType: string, lang: Language): Promise<string> => {
   try {
-    // Fix: Initializing with process.env.API_KEY directly.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const langText = lang === 'ru' ? 'русский' : 'English';
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -129,8 +130,7 @@ export const generateGuestGreeting = async (guestName: string, occasion: string,
 
 export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" = "1K"): Promise<string | null> => {
   try {
-    // Fix: Initializing with process.env.API_KEY and using recommended model gemini-2.5-flash-image.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
@@ -143,7 +143,6 @@ export const generateAiImage = async (prompt: string, size: "1K" | "2K" | "4K" =
       }
     });
 
-    // Fix: Iterating through parts to find the inlineData image part as per image generation guidelines.
     const parts = response.candidates?.[0]?.content?.parts || [];
     for (const part of parts) {
       if (part.inlineData) {
