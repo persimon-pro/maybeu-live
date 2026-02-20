@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { QuizQuestion, Language } from "../types";
 
 // Ваш ключ
-const GEMINI_API_KEY = "AIzaSyArOLbY23EpDcvCJsUkaH9MOUnu7KosVF4"; 
+const GEMINI_API_KEY = "AIzaSyAQZATgXza-XjMt274XQ7eHJEFSNFY2gPI"; 
 
 export const generateQuizQuestions = async (
   topic: string, 
