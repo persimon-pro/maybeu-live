@@ -42,20 +42,20 @@ export const FirebaseService = {
   },
 
   // --- ВЕДУЩИЙ ---
-  syncEvent: (event: any) => {
-    if (!event) return;
-    update(ref(db, 'currentEvent'), event);
-    update(ref(db, `events/${event.id}`), event);
+  syncEvent: (code: string, event: any) => {
+    if (!event || !code) return;
+    update(ref(db, `active_events/${code}/currentEvent`), event);
+    if (event.id) update(ref(db, `events/${event.id}`), event);
   },
 
-  syncGameState: (state: any) => {
-    if (!state) return;
-    update(ref(db, 'gameState'), state);
+  syncGameState: (code: string, state: any) => {
+    if (!state || !code) return;
+    update(ref(db, `active_events/${code}/gameState`), state);
   },
 
   resetGameData: (code: string) => {
     remove(ref(db, `session_data/${code}`));
-    set(ref(db, 'gameState'), { isActive: false });
+    update(ref(db, `active_events/${code}/gameState`), { isActive: false });
   },
 
   // --- CRM ---
@@ -118,24 +118,25 @@ export const FirebaseService = {
     return null;
   },
 
-  subscribeToEvent: (cb: (data: any) => void) => {
-    return onValue(ref(db, 'currentEvent'), (s) => cb(s.val()));
+  subscribeToEvent: (code: string, cb: (data: any) => void) => {
+    return onValue(ref(db, `active_events/${code}/currentEvent`), (s) => cb(s.val()));
   },
 
-  subscribeToGame: (cb: (data: any) => void) => {
-    return onValue(ref(db, 'gameState'), (s) => cb(s.val()));
+  subscribeToGame: (code: string, cb: (data: any) => void) => {
+    return onValue(ref(db, `active_events/${code}/gameState`), (s) => cb(s.val()));
   },
 
   subscribeToSessionData: (code: string, cb: (data: any) => void) => {
     return onValue(ref(db, `session_data/${code}`), (s) => cb(s.val() || {}));
   },
 
-  sendScreenHeartbeat: () => {
-    set(ref(db, 'screen_status'), { last_seen: Date.now() });
+  sendScreenHeartbeat: (code: string) => {
+    set(ref(db, `active_events/${code}/screen_status`), { last_seen: Date.now() });
   },
 
-  subscribeToScreenStatus: (cb: (lastSeen: number) => void) => {
-    return onValue(ref(db, 'screen_status/last_seen'), (s) => cb(s.val()));
-  }
+subscribeToScreenStatus: (code: string, cb: (lastSeen: number) => void) => {
+    return onValue(ref(db, `active_events/${code}/screen_status/last_seen`), (s) => cb(s.val()));
+  },
 
 };
+
