@@ -11,122 +11,44 @@ interface Props {
 
 const TRANSLATIONS = {
   ru: {
-    panel: 'Панель управления Live',
-    event: 'Событие',
-    quiz: 'Квиз',
-    believe: 'Верю / Не верю',
-    shake: 'Тряси!',
-    push: 'Жми!',
-    art: 'ИИ Арт',
-    quest: 'Квест',
-    start: 'НАЧАТЬ ИГРУ',
-    questions: 'Список вопросов',
-    aiGen: 'Сгенерировать через ИИ',
-    manualTitle: 'Свой вопрос',
-    addToList: 'Добавить в список',
-    clearAll: 'Очистить всё',
-    thinking: 'Генерация...',
-    noQs: 'Вопросов пока нет. Создайте вручную или используйте ИИ!',
-    status: 'Текущий статус',
-    lobby: 'Ожидание',
-    startQ: 'ЗАПУСТИТЬ ПЕРВЫЙ ВОПРОС',
-    onAir: 'В эфире',
-    next: 'Далее',
-    back: 'Назад',
-    reset: 'Сброс в ожидание',
-    leaders: 'Лидеры',
-    shakeTitle: 'ИСПЫТАНИЕ ТРЯСКИ',
-    shakeDesc: 'Зрители должны трясти свои телефоны как можно сильнее.',
-    shakeStart: 'СТАРТ 10 СЕКУНД!',
-    pushTitle: 'ГОНКА КЛИКОВ: ЖМИ!',
-    pushDesc: 'Кто быстрее нажмет на кнопку 50 раз? Нажимайте только одним пальцем, иначе сломаете телефон!',
-    pushStart: 'ЗАПУСТИТЬ ОТСЧЕТ 10 СЕК',
-    gameEnd: 'Завершить игру и итоги',
-    artTitle: 'ИИ Арт-Битва',
-    artDesc: 'Гости создают шедевры с помощью ИИ.',
-    artTheme: 'Тема конкурса',
-    artAccess: 'НАЧАТЬ ИГРУ',
-    activity: 'Работы гостей',
-    noActivity: 'Ждем первых шедевров...',
-    aiSettings: 'Параметры ИИ',
-    aiTopic: 'Тема квиза',
-    aiCount: 'Количество',
-    aiMood: 'Характер',
-    moodFun: 'Веселый',
-    moodPro: 'Серьезный',
-    moodHard: 'Сложный',
-    qPlaceholder: 'Введите текст вопроса...',
-    optPlaceholder: 'Вариант',
-    correctLabel: 'Верный ответ',
-    trueBtn: 'ВЕРЮ (True)',
-    falseBtn: 'НЕ ВЕРЮ (False)',
-    questTitle: 'МЕГА-КВЕСТ: 4 ЭТАПА',
-    questDesc: 'Серия испытаний на логику, скорость и внимательность.',
-    questStage: 'Этап',
-    questFinal: 'ПОДВЕСТИ ИТОГИ (ФИНАЛ)',
-    clearScreen: 'ОЧИСТИТЬ ЭКРАН',
-    edit: 'Редактировать',
-    save: 'Сохранить',
-    reveal: 'ПОКАЗАТЬ ОТВЕТ'
+    panel: 'Панель управления Live', event: 'Событие', quiz: 'Квиз', believe: 'Верю / Не верю',
+    shake: 'Тряси!', push: 'Жми!', art: 'ИИ Арт', quest: 'Квест', start: 'НАЧАТЬ ИГРУ',
+    questions: 'Список вопросов', aiGen: 'Сгенерировать через ИИ', manualTitle: 'Свой вопрос',
+    addToList: 'Добавить в список', clearAll: 'Очистить всё', thinking: 'Генерация...',
+    noQs: 'Вопросов пока нет. Создайте вручную или используйте ИИ!', status: 'Текущий статус',
+    lobby: 'Ожидание', startQ: 'ЗАПУСТИТЬ ПЕРВЫЙ ВОПРОС', onAir: 'В эфире', next: 'Далее',
+    back: 'Назад', reset: 'Сброс в ожидание', leaders: 'Лидеры', shakeTitle: 'ИСПЫТАНИЕ ТРЯСКИ',
+    shakeDesc: 'Зрители должны трясти свои телефоны как можно сильнее.', shakeStart: 'СТАРТ 10 СЕКУНД!',
+    pushTitle: 'ГОНКА КЛИКОВ: ЖМИ!', pushDesc: 'Кто быстрее нажмет на кнопку 50 раз? Нажимайте только одним пальцем, иначе сломаете телефон!',
+    pushStart: 'ЗАПУСТИТЬ ОТСЧЕТ 10 СЕК', gameEnd: 'Завершить игру и итоги', artTitle: 'ИИ Арт-Битва',
+    artDesc: 'Гости создают шедевры с помощью ИИ.', artTheme: 'Тема конкурса', artAccess: 'НАЧАТЬ ИГРУ',
+    activity: 'Работы гостей', noActivity: 'Ждем первых шедевров...', aiSettings: 'Параметры ИИ',
+    aiTopic: 'Тема квиза', aiCount: 'Количество', aiMood: 'Характер', moodFun: 'Веселый',
+    moodPro: 'Серьезный', moodHard: 'Сложный', qPlaceholder: 'Введите текст вопроса...',
+    optPlaceholder: 'Вариант', correctLabel: 'Верный ответ', trueBtn: 'ВЕРЮ (True)',
+    falseBtn: 'НЕ ВЕРЮ (False)', questTitle: 'МЕГА-КВЕСТ: 4 ЭТАПА', questDesc: 'Серия испытаний на логику, скорость и внимательность.',
+    questStage: 'Этап', questFinal: 'ПОДВЕСТИ ИТОГИ (ФИНАЛ)', clearScreen: 'ОЧИСТИТЬ ЭКРАН',
+    edit: 'Редактировать', save: 'Сохранить', reveal: 'ПОКАЗАТЬ ОТВЕТ'
   },
   en: {
-    panel: 'Live Control Center',
-    event: 'Event',
-    quiz: 'Quiz',
-    believe: 'Believe / Not',
-    shake: 'Shake It!',
-    push: 'Push It!',
-    art: 'AI Art',
-    quest: 'Quest',
-    start: 'START GAME',
-    questions: 'Question List',
-    aiGen: 'AI Generate',
-    manualTitle: 'Custom Question',
-    addToList: 'Add to List',
-    clearAll: 'Clear All',
-    thinking: 'Generating...',
-    noQs: 'No questions yet. Create manually or use AI!',
-    status: 'Current Status',
-    lobby: 'Waiting',
-    startQ: 'START FIRST QUESTION',
-    onAir: 'On Air',
-    next: 'Next',
-    back: 'Back',
-    reset: 'Reset to Waiting',
-    leaders: 'Leaderboard',
-    shakeTitle: 'SHAKE CHALLENGE',
-    shakeDesc: 'Audience must shake their phones as hard as they can.',
-    shakeStart: 'START 10 SECONDS!',
-    pushTitle: 'CLICK RACE: PUSH IT!',
-    pushDesc: 'Who can tap 50 times faster? Press with only one finger, otherwise you will break the phone!',
-    pushStart: 'START 10 SEC COUNTDOWN',
-    gameEnd: 'Finish and Show Results',
-    artTitle: 'AI Art Battle',
-    artDesc: 'Guests create AI masterpieces.',
-    artTheme: 'Competition Theme',
-    artAccess: 'START GAME',
-    activity: 'Guest Artwork',
-    noActivity: 'Waiting for masterpieces...',
-    aiSettings: 'AI Settings',
-    aiTopic: 'Quiz Topic',
-    aiCount: 'Count',
-    aiMood: 'Character',
-    moodFun: 'Funny',
-    moodPro: 'Professional',
-    moodHard: 'Hardcore',
-    qPlaceholder: 'Enter question text...',
-    optPlaceholder: 'Option',
-    correctLabel: 'Correct answer',
-    trueBtn: 'BELIEVE (True)',
-    falseBtn: 'DON\'T (False)',
-    questTitle: 'MEGA QUEST: 4 STAGES',
-    questDesc: 'Series of logic, speed, and attention challenges.',
-    questStage: 'Stage',
-    questFinal: 'SHOW FINAL RESULTS',
-    clearScreen: 'CLEAR SCREEN',
-    edit: 'Edit',
-    save: 'Save',
-    reveal: 'REVEAL ANSWER'
+    panel: 'Live Control Center', event: 'Event', quiz: 'Quiz', believe: 'Believe / Not',
+    shake: 'Shake It!', push: 'Push It!', art: 'AI Art', quest: 'Quest', start: 'START GAME',
+    questions: 'Question List', aiGen: 'AI Generate', manualTitle: 'Custom Question',
+    addToList: 'Add to List', clearAll: 'Clear All', thinking: 'Generating...',
+    noQs: 'No questions yet. Create manually or use AI!', status: 'Current Status',
+    lobby: 'Waiting', startQ: 'START FIRST QUESTION', onAir: 'On Air', next: 'Next',
+    back: 'Back', reset: 'Reset to Waiting', leaders: 'Leaderboard', shakeTitle: 'SHAKE CHALLENGE',
+    shakeDesc: 'Audience must shake their phones as hard as they can.', shakeStart: 'START 10 SECONDS!',
+    pushTitle: 'CLICK RACE: PUSH IT!', pushDesc: 'Who can tap 50 times faster? Press with only one finger, otherwise you will break the phone!',
+    pushStart: 'START 10 SEC COUNTDOWN', gameEnd: 'Finish and Show Results', artTitle: 'AI Art Battle',
+    artDesc: 'Guests create AI masterpieces.', artTheme: 'Competition Theme', artAccess: 'START GAME',
+    activity: 'Guest Artwork', noActivity: 'Waiting for masterpieces...', aiSettings: 'AI Settings',
+    aiTopic: 'Quiz Topic', aiCount: 'Count', aiMood: 'Character', moodFun: 'Funny',
+    moodPro: 'Professional', moodHard: 'Hardcore', qPlaceholder: 'Enter question text...',
+    optPlaceholder: 'Option', correctLabel: 'Correct answer', trueBtn: 'BELIEVE (True)',
+    falseBtn: 'DON\'T (False)', questTitle: 'MEGA QUEST: 4 STAGES', questDesc: 'Series of logic, speed, and attention challenges.',
+    questStage: 'Stage', questFinal: 'SHOW FINAL RESULTS', clearScreen: 'CLEAR SCREEN',
+    edit: 'Edit', save: 'Save', reveal: 'REVEAL ANSWER'
   }
 };
 
@@ -138,7 +60,6 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   
-  // --- НОВОЕ: Состояние раскрытия ответа и счетчики ---
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
   const [answersCount, setAnswersCount] = useState(0);
@@ -146,7 +67,6 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
   const countdownInterval = useRef<any>(null);
   const autoNextTimeout = useRef<any>(null);
 
-  // Editing state
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editQuestionText, setEditQuestionText] = useState('');
   const [editOptions, setEditOptions] = useState<string[]>([]);
@@ -168,14 +88,20 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     setQuestions(activeEvent.questions || []);
   }, [activeEvent]);
 
-  // --- СЛЕЖИМ ЗА ОТВЕТАМИ ГОСТЕЙ И АВТО-ПЕРЕКЛЮЧЕНИЕМ ---
+  // === 🛑 МАГИЯ РАЗДЕЛЕНИЯ ВОПРОСОВ ===
+  const currentModeQuestions = questions
+    .map((q, originalIdx) => ({ q, originalIdx }))
+    .filter(({ q }) => gameMode === GameType.BELIEVE_NOT ? q.options.length === 2 : q.options.length > 2);
+
+  const displayedQuestionsForGuests = currentModeQuestions.map(item => item.q);
+  // ====================================
+
   useEffect(() => {
     if ((gameMode === GameType.QUIZ || gameMode === GameType.BELIEVE_NOT) && currentIdx >= 0) {
       const unsub = FirebaseService.subscribeToSessionData(activeEvent.code, (data) => {
         const totalGuests = data.registry ? Object.keys(data.registry).length : 0;
         setOnlineCount(totalGuests);
 
-        // Считаем, сколько людей ответило на ТЕКУЩИЙ вопрос
         let currentAnswers = 0;
         if (data.quiz_answers) {
            Object.values(data.quiz_answers).forEach((userAns: any) => {
@@ -184,7 +110,6 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
         }
         setAnswersCount(currentAnswers);
 
-        // ЛОГИКА АВТОМАТИКИ: Если все ответили и ответ еще скрыт -> Показать -> Ждать -> Дальше
         if (totalGuests > 0 && currentAnswers >= totalGuests && !isAnswerRevealed) {
            handleRevealAndNext();
         }
@@ -201,21 +126,22 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     });
   };
 
-  // Синхронизация состояния с Firebase
   useEffect(() => {
-    FirebaseService.syncGameState({
+    if (!activeEvent?.code) return;
+
+    FirebaseService.syncGameState(activeEvent.code, {
       gameType: gameMode,
       currentIdx,
       questStage,
       isActive: currentIdx >= 0 || countdown !== null,
       isCountdown: countdown !== null,
       countdownValue: countdown,
-      questions,
+      questions: displayedQuestionsForGuests, // <-- ТОЛЬКО ВОПРОСЫ ТЕКУЩЕЙ ИГРЫ
       artTheme,
-      isAnswerRevealed, // <-- Отправляем флаг "Показан ответ"
+      isAnswerRevealed, 
       timestamp: Date.now()
     });
-  }, [gameMode, currentIdx, questStage, questions, artTheme, countdown, isAnswerRevealed]);
+  }, [activeEvent?.code, gameMode, currentIdx, questStage, questions, artTheme, countdown, isAnswerRevealed]);
 
   const handleClearScreen = () => {
     setCurrentIdx(-1);
@@ -253,24 +179,17 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     }, 1000);
   };
 
-  // --- ЛОГИКА КНОПКИ "ДАЛЕЕ" ---
   const handleNextClick = () => {
-    // 1. Если ответ скрыт - сначала показываем его
     if (!isAnswerRevealed && (gameMode === GameType.QUIZ || gameMode === GameType.BELIEVE_NOT)) {
       setIsAnswerRevealed(true);
     } else {
-      // 2. Если уже показан или это не квиз - переходим к следующему вопросу
       forceNextQuestion();
     }
   };
 
-  // Авто-цепочка: Показать -> Таймер 4 сек -> Следующий
   const handleRevealAndNext = () => {
     setIsAnswerRevealed(true);
-    
     if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
-    
-    // Ждем 4 секунды, чтобы люди увидели правильный ответ
     autoNextTimeout.current = setTimeout(() => {
        forceNextQuestion();
     }, 4000);
@@ -278,19 +197,17 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
 
   const forceNextQuestion = () => {
     if (autoNextTimeout.current) clearTimeout(autoNextTimeout.current);
-    
-    setIsAnswerRevealed(false); // Скрываем ответ для нового вопроса
-    if (currentIdx < questions.length - 1) {
+    setIsAnswerRevealed(false); 
+    if (currentIdx < currentModeQuestions.length - 1) {
       setCurrentIdx(prev => prev + 1);
     } else {
-      // Конец игры
-      setCurrentIdx(questions.length);
+      setCurrentIdx(currentModeQuestions.length);
     }
   };
 
   const handleFinishGame = () => {
     if (gameMode === GameType.QUIZ || gameMode === GameType.BELIEVE_NOT || gameMode === GameType.QUEST) {
-      setCurrentIdx(questions.length + 10); 
+      setCurrentIdx(currentModeQuestions.length + 10); 
     } else {
       setCurrentIdx(-1);
     }
@@ -311,9 +228,9 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     setIsGenerating(false);
   };
 
-  const handleStartEdit = (idx: number) => {
-    const q = questions[idx];
-    setEditingIdx(idx);
+  const handleStartEdit = (originalIdx: number) => {
+    const q = questions[originalIdx];
+    setEditingIdx(originalIdx);
     setEditQuestionText(q.question);
     setEditOptions([...q.options]);
     setEditCorrectIdx(q.correctAnswerIndex);
@@ -334,7 +251,6 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
 
   const handleAddManual = () => {
     if (!manualQ.trim()) return;
-    
     const newQ: QuizQuestion = {
       id: Math.random().toString(36).substr(2, 9),
       question: manualQ,
@@ -350,10 +266,16 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     setManualCorrect(0);
   };
 
-  const removeQuestion = (idx: number) => {
-    const updatedList = questions.filter((_, i) => i !== idx);
+  const removeQuestion = (originalIdx: number, listIdx: number) => {
+    const updatedList = questions.filter((_, i) => i !== originalIdx);
     saveQuestionsToFirebase(updatedList); 
-    if (currentIdx === idx) setCurrentIdx(-1);
+    if (currentIdx === listIdx) setCurrentIdx(-1);
+  };
+
+  const handleClearCurrentModeQuestions = () => {
+    const updatedList = questions.filter(q => gameMode === GameType.BELIEVE_NOT ? q.options.length > 2 : q.options.length === 2);
+    saveQuestionsToFirebase(updatedList);
+    setCurrentIdx(-1);
   };
 
   const isGameActive = (currentIdx >= 0 || countdown !== null);
@@ -381,7 +303,6 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
         <div className={`${isQuizType ? 'lg:col-span-2' : ''} space-y-6`}>
           {isQuizType && (
             <div className="space-y-6">
-              {/* AI Block */}
               <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden p-6 space-y-6">
                  <div className="flex items-center gap-3 mb-2">
                     <Cpu size={18} className="text-indigo-500" />
@@ -407,7 +328,6 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
                  </div>
               </div>
 
-              {/* Manual Creation Block */}
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6">
                  <div className="flex items-center gap-3">
                     <PlusCircle size={18} className="text-indigo-500" />
@@ -568,7 +488,6 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
           {isQuizType && isGameActive && (
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-6">
                <div className="w-full flex flex-col items-center gap-6">
-                  {/* Счетчик ответивших */}
                   <div className="flex items-center gap-2 bg-slate-950 px-4 py-2 rounded-xl text-xs font-black uppercase text-indigo-400 animate-in fade-in">
                      <Users size={14} /> Ответили: {answersCount} / {onlineCount}
                   </div>
@@ -595,8 +514,8 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
                   <List size={18} className="text-slate-500" />
                   <h3 className="font-black text-white uppercase italic text-sm">{t.questions}</h3>
                 </div>
-                {questions.length > 0 && (
-                  <button onClick={() => setQuestions([])} className="text-rose-500 hover:text-rose-400 transition-colors">
+                {currentModeQuestions.length > 0 && (
+                  <button onClick={handleClearCurrentModeQuestions} className="text-rose-500 hover:text-rose-400 transition-colors">
                     <Trash2 size={16} />
                   </button>
                 )}
@@ -607,9 +526,9 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${isGameActive ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800 text-slate-400'}`}>{isGameActive ? t.onAir : t.lobby}</span>
                 </div>
                 <div className="space-y-2 flex-1 overflow-y-auto max-h-[500px]">
-                  {questions.length > 0 ? questions.map((q, i) => (
-                      <div key={q.id || i} className={`p-4 rounded-xl border transition-all flex flex-col gap-3 group ${currentIdx === i ? 'bg-indigo-600/10 border-indigo-500 shadow-lg' : 'bg-slate-950/30 border-slate-800'}`}>
-                        {editingIdx === i ? (
+                  {currentModeQuestions.length > 0 ? currentModeQuestions.map(({ q, originalIdx }, i) => (
+                      <div key={q.id || originalIdx} className={`p-4 rounded-xl border transition-all flex flex-col gap-3 group ${currentIdx === i ? 'bg-indigo-600/10 border-indigo-500 shadow-lg' : 'bg-slate-950/30 border-slate-800'}`}>
+                        {editingIdx === originalIdx ? (
                           <div className="space-y-3 animate-in fade-in duration-200">
                             <input 
                               value={editQuestionText} 
@@ -658,11 +577,11 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
                                   <p className="text-[9px] font-black text-slate-500 uppercase mt-1">Ans: {gameMode === GameType.BELIEVE_NOT ? (q.correctAnswerIndex === 0 ? 'True' : 'False') : String.fromCharCode(65 + q.correctAnswerIndex)}</p>
                               </div>
                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                <button onClick={() => handleStartEdit(i)} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded transition-all">
+                                <button onClick={() => handleStartEdit(originalIdx)} className="p-1 text-indigo-400 hover:bg-indigo-500/10 rounded transition-all">
                                   <Edit2 size={14} />
                                 </button>
                                 {!isGameActive && (
-                                  <button onClick={() => removeQuestion(i)} className="p-1 text-rose-500 hover:bg-rose-500/10 rounded transition-all">
+                                  <button onClick={() => removeQuestion(originalIdx, i)} className="p-1 text-rose-500 hover:bg-rose-500/10 rounded transition-all">
                                     <Trash2 size={14} />
                                   </button>
                                 )}
@@ -678,7 +597,7 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
                   )}
                 </div>
 
-                {!isGameActive && questions.length > 0 && (
+                {!isGameActive && currentModeQuestions.length > 0 && (
                   <button 
                     onClick={handleStartGame}
                     className="w-full bg-white text-indigo-900 py-4 rounded-2xl font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 mt-auto"
