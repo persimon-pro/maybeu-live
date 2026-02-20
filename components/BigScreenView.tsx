@@ -116,6 +116,9 @@ const TRANSLATIONS = {
 };
 
 const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
+  const [screenCode, setScreenCode] = useState(initialEvent?.code || '');
+  const [isCodeEntered, setIsCodeEntered] = useState(!!initialEvent?.code);
+  
   const [gameState, setGameState] = useState<any>(null);
   const [activeEvent, setActiveEvent] = useState<LiveEvent | null>(initialEvent);
   const [onlineCount, setOnlineCount] = useState(0);
@@ -126,17 +129,19 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    const unsub = FirebaseService.subscribeToEvent((evt) => {
+    if (!isCodeEntered || !screenCode) return;
+    const unsub = FirebaseService.subscribeToEvent(screenCode, (evt) => {
       setActiveEvent(evt);
     });
     const pulse = setInterval(() => {
-      FirebaseService.sendScreenHeartbeat();
+      FirebaseService.sendScreenHeartbeat(screenCode);
     }, 2000);
     return () => { unsub(); clearInterval(pulse); };
-  }, []);
+  }, [isCodeEntered, screenCode]);
 
   useEffect(() => {
-    const unsubGame = FirebaseService.subscribeToGame((gs) => {
+    if (!isCodeEntered || !screenCode) return;
+    const unsubGame = FirebaseService.subscribeToGame(screenCode, (gs) => {
       setGameState((prev: any) => {
          const isNewStep = prev?.currentIdx !== gs?.currentIdx || prev?.questStage !== gs?.questStage || prev?.gameType !== gs?.gameType;
          if (isNewStep && gs) {
@@ -271,16 +276,25 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     }
   };
 
-  if (!activeEvent) {
-     return (
-        <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center relative overflow-hidden">
-           <div className="absolute top-6 right-6 flex gap-2 z-50">
-             <button onClick={toggleFullscreen} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500"><Maximize2 size={24} /></button>
-           </div>
-           <h1 className="text-[5vmin] font-black text-slate-800 tracking-[1em] mb-4 uppercase italic drop-shadow-lg">{t.standby}</h1>
-           <div className="w-[10vmin] h-1 bg-slate-900 rounded-full animate-pulse"></div>
-        </div>
-     );
+ if (!isCodeEntered) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center">
+         <h1 className="text-4xl font-black text-white mb-8">ПОДКЛЮЧЕНИЕ ЭКРАНА</h1>
+         <input 
+           value={screenCode} 
+           onChange={e => setScreenCode(e.target.value.toUpperCase())} 
+           placeholder="ВВЕДИТЕ КОД (например, LOVE24)" 
+           className="bg-slate-900 border-2 border-slate-700 text-white text-3xl font-mono text-center p-6 rounded-2xl mb-6 outline-none focus:border-indigo-500 uppercase"
+         />
+         <button 
+           onClick={() => setIsCodeEntered(true)} 
+           disabled={!screenCode} 
+           className="bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-black px-12 py-6 rounded-2xl disabled:opacity-50 transition-all"
+         >
+           ПОДКЛЮЧИТЬ ЭКРАН
+         </button>
+      </div>
+    );
   }
 
   if (activeEvent.status === 'COMPLETED') {
