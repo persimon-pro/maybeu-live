@@ -11,9 +11,9 @@ export const generateQuizQuestions = async (
   mood: string = "fun"
 ): Promise<QuizQuestion[]> => {
   try {
-    // Используем правильную браузерную библиотеку
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // ИСПРАВЛЕНИЕ: Используем 100% рабочую классическую модель gemini-pro
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     
     const prompt = `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.
@@ -51,7 +51,8 @@ export const generateBelieveNotQuestions = async (
 ): Promise<QuizQuestion[]> => {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // ИСПРАВЛЕНИЕ: Используем 100% рабочую классическую модель gemini-pro
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const langText = lang === 'ru' ? 'русском' : 'English';
     const options = lang === 'ru' ? ["Верю", "Не верю"] : ["Believe", "Don't Believe"];
     
@@ -92,7 +93,8 @@ const getFallbackBelieveNot = (lang: Language): QuizQuestion[] => {
 export const generateGuestGreeting = async (guestName: string, occasion: string, eventType: string, lang: Language): Promise<string> => {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // ИСПРАВЛЕНИЕ: Используем 100% рабочую классическую модель gemini-pro
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const langText = lang === 'ru' ? 'русский' : 'English';
     const prompt = `Write a warm, professional yet festive personalized message for a guest named ${guestName} for the occasion of ${occasion}. Mention our previous collaboration at a "${eventType}" event. Keep it short for WhatsApp/Telegram. Language: ${langText}.`;
     
