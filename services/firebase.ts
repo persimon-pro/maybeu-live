@@ -1,7 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, update, get, onValue, push, set, remove, child } from "firebase/database";
-
-// 1. Добавляем импорт модуля авторизации
+import { getDatabase, ref, update, get, onValue, push, set, remove } from "firebase/database";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -18,7 +16,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// 2. Инициализируем auth и экспортируем его для всего приложения
+// Экспортируем auth
 export const auth = getAuth(app);
 
 export const FirebaseService = {
@@ -41,7 +39,7 @@ export const FirebaseService = {
     });
   },
 
-  // --- ВЕДУЩИЙ ---
+  // --- ВЕДУЩИЙ (ТЕПЕРЬ ВСЕ ЧЕРЕЗ CODE) ---
   syncEvent: (code: string, event: any) => {
     if (!event || !code) return;
     update(ref(db, `active_events/${code}/currentEvent`), event);
@@ -54,54 +52,50 @@ export const FirebaseService = {
   },
 
   resetGameData: (code: string) => {
+    if (!code) return;
     remove(ref(db, `session_data/${code}`));
     update(ref(db, `active_events/${code}/gameState`), { isActive: false });
   },
 
   // --- CRM ---
-  sendLead: (lead: any) => {
-    push(ref(db, 'crm_leads'), lead);
-  },
-
+  sendLead: (lead: any) => { push(ref(db, 'crm_leads'), lead); },
+  
   subscribeToLeads: (cb: (leads: any[]) => void) => {
     return onValue(ref(db, 'crm_leads'), (snapshot) => {
       const data = snapshot.val();
       cb(data ? Object.values(data) : []);
     });
   },
-
-  clearLeads: () => {
-    set(ref(db, 'crm_leads'), null);
-  },
+  
+  clearLeads: () => { set(ref(db, 'crm_leads'), null); },
 
   // --- ГОСТЬ / ДЕЙСТВИЯ ---
   joinEvent: (code: string, name: string) => {
-    const userRef = ref(db, `session_data/${code}/registry/${name}`);
-    set(userRef, { name, timestamp: Date.now() });
+    if (!code) return;
+    set(ref(db, `session_data/${code}/registry/${name}`), { name, timestamp: Date.now() });
   },
 
   sendAnswer: (code: string, type: 'quiz' | 'quest', key: string | number, data: any) => {
+    if (!code) return;
     const path = type === 'quiz' 
       ? `session_data/${code}/quiz_answers/${data.name}/${key}`
       : `session_data/${code}/quest_responses/${key}`;
-    
-    if (type === 'quiz') {
-      set(ref(db, path), data);
-    } else {
-      push(ref(db, path), data);
-    }
+    if (type === 'quiz') set(ref(db, path), data);
+    else push(ref(db, path), data);
   },
 
-  sendImage: (code: string, data: any) => {
-    push(ref(db, `session_data/${code}/images`), data);
+  sendImage: (code: string, data: any) => { 
+    if (!code) return;
+    push(ref(db, `session_data/${code}/images`), data); 
   },
 
   updateRaceProgress: (code: string, name: string, count: number) => {
+    if (!code) return;
     set(ref(db, `session_data/${code}/race/${name}`), count);
   },
 
-  // НОВОЕ: Функция для обновления счетчика тряски
   updateShakeCount: (code: string, name: string, count: number) => {
+    if (!code) return;
     set(ref(db, `session_data/${code}/shake/${name}`), count);
   },
 
@@ -131,12 +125,11 @@ export const FirebaseService = {
   },
 
   sendScreenHeartbeat: (code: string) => {
+    if (!code) return;
     set(ref(db, `active_events/${code}/screen_status`), { last_seen: Date.now() });
   },
 
-subscribeToScreenStatus: (code: string, cb: (lastSeen: number) => void) => {
+  subscribeToScreenStatus: (code: string, cb: (lastSeen: number) => void) => {
     return onValue(ref(db, `active_events/${code}/screen_status/last_seen`), (s) => cb(s.val()));
-  },
-
+  }
 };
-
