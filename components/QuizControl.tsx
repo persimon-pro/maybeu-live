@@ -201,11 +201,9 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     });
   };
 
-// Синхронизация состояния с Firebase
+  // Синхронизация состояния с Firebase
   useEffect(() => {
-    if (!activeEvent?.code) return; // Обязательная защита!
-
-    FirebaseService.syncGameState(activeEvent.code, {
+    FirebaseService.syncGameState({
       gameType: gameMode,
       currentIdx,
       questStage,
@@ -214,10 +212,10 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
       countdownValue: countdown,
       questions,
       artTheme,
-      isAnswerRevealed, 
+      isAnswerRevealed, // <-- Отправляем флаг "Показан ответ"
       timestamp: Date.now()
     });
-  }, [activeEvent?.code, gameMode, currentIdx, questStage, questions, artTheme, countdown, isAnswerRevealed]);
+  }, [gameMode, currentIdx, questStage, questions, artTheme, countdown, isAnswerRevealed]);
 
   const handleClearScreen = () => {
     setCurrentIdx(-1);
