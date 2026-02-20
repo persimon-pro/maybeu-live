@@ -203,8 +203,8 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
 
   // Синхронизация состояния с Firebase
   useEffect(() => {
-    FirebaseService.syncGameState({
-      gameType: gameMode,
+    FirebaseService.syncGameState(activeEvent.code, {
+       gameType: gameMode,
       currentIdx,
       questStage,
       isActive: currentIdx >= 0 || countdown !== null,
