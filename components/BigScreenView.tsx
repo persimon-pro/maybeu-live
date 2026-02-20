@@ -288,7 +288,6 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
           {activeEvent.status === 'LIVE' ? (
             <div className="bg-white p-[2vmin] rounded-[3vmin] shadow-2xl inline-block border-[1vmin] border-indigo-600/20 animate-in zoom-in duration-500">
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://maybeu-live.vercel.app/?code=${activeEvent.code}`} alt="QR" className="w-[30vmin] h-[30vmin]" />
-              <div className="mt-4 text-indigo-900 font-black text-[2.5vmin] uppercase tracking-widest">{t.joinOn} maybeu-live.vercel.app</div>
             </div>
           ) : (
             <div className="py-20 animate-in fade-in duration-1000">
