@@ -121,9 +121,16 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    if (!activeEvent?.code) return; // Проверяем, что ивент выбран
+    // 1. Обязательно ждем, пока activeEvent не появится
+    if (!activeEvent?.code) return; 
+    
+    // 2. Передаем activeEvent.code ПЕРВЫМ аргументом
     const unsubScreen = FirebaseService.subscribeToScreenStatus(activeEvent.code, (ts) => {
-        setIsScreenConnected(!!(ts && Date.now() - ts < 8000));
+        if (ts && Date.now() - ts < 8000) {
+            setIsScreenConnected(true);
+        } else {
+            setIsScreenConnected(false);
+        }
     });
     return () => unsubScreen();
   }, [activeEvent?.code]);
