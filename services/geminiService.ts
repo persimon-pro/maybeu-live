@@ -13,7 +13,7 @@ export const generateQuizQuestions = async (
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // ИСПРАВЛЕНИЕ: Используем 100% рабочую классическую модель gemini-pro
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     
     const prompt = `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.
