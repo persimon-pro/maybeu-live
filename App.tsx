@@ -57,6 +57,13 @@ const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.has('code')) {
+      setRole('GUEST');
+    }
+  }, []);
+
   const handleExit = () => {
     setRole(null);
     setActiveEvent(null);
@@ -167,3 +174,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
