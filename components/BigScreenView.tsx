@@ -315,6 +315,49 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     );
   }
 
+if (!isCodeEntered) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center">
+         <h1 className="text-4xl font-black text-white mb-8">ПОДКЛЮЧЕНИЕ ЭКРАНА</h1>
+         <input 
+           value={screenCode} 
+           onChange={e => setScreenCode(e.target.value.toUpperCase())} 
+           placeholder="ВВЕДИТЕ КОД (например, LOVE24)" 
+           className="bg-slate-900 border-2 border-slate-700 text-white text-3xl font-mono text-center p-6 rounded-2xl mb-6 outline-none focus:border-indigo-500 uppercase"
+         />
+         <button 
+           onClick={() => setIsCodeEntered(true)} 
+           disabled={!screenCode} 
+           className="bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-black px-12 py-6 rounded-2xl disabled:opacity-50 transition-all"
+         >
+           ПОДКЛЮЧИТЬ ЭКРАН
+         </button>
+      </div>
+    );
+  }
+
+  // ========================================================
+  // 🛑 НОВАЯ ЗАЩИТА ОТ БЕЛОГО ЭКРАНА 🛑
+  // Если код введен, но данные еще грузятся или код неверный
+  if (!activeEvent) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center">
+         <Loader2 className="w-16 h-16 text-indigo-500 animate-spin mx-auto mb-8" />
+         <h2 className="text-2xl font-black text-slate-500 uppercase tracking-widest">ОЖИДАНИЕ ДАННЫХ...</h2>
+         <p className="mt-4 text-slate-600">Код: {screenCode}</p>
+         <button 
+           onClick={() => {
+             setIsCodeEntered(false);
+             setScreenCode('');
+           }} 
+           className="mt-8 px-6 py-2 border border-slate-700 text-slate-400 rounded-xl hover:bg-slate-800 transition-colors uppercase text-xs font-bold"
+         >
+           Ввести другой код
+         </button>
+      </div>
+    );
+  }
+  
  // 5. ЭКРАН ОЖИДАНИЯ (ЖДЕМ, ПОКА ВЕДУЩИЙ НАЖМЕТ "ВЫЙТИ В ЭФИР")
   if (!activeEvent || activeEvent.status !== 'LIVE') {
     return (
