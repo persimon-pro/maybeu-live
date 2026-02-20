@@ -201,10 +201,10 @@ const QuizControl: React.FC<Props> = ({ activeEvent, lang }) => {
     });
   };
 
-useEffect(() => {
-    if (!activeEvent?.code) return; // Защита от пустого кода
-    
-    // ДОБАВЛЯЕМ activeEvent.code ПЕРВЫМ АРГУМЕНТОМ
+// Синхронизация состояния с Firebase
+  useEffect(() => {
+    if (!activeEvent?.code) return; // Обязательная защита!
+
     FirebaseService.syncGameState(activeEvent.code, {
       gameType: gameMode,
       currentIdx,
@@ -214,7 +214,7 @@ useEffect(() => {
       countdownValue: countdown,
       questions,
       artTheme,
-      isAnswerRevealed,
+      isAnswerRevealed, 
       timestamp: Date.now()
     });
   }, [activeEvent?.code, gameMode, currentIdx, questStage, questions, artTheme, countdown, isAnswerRevealed]);
