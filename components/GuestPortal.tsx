@@ -138,8 +138,8 @@ const GuestPortal: React.FC<Props> = ({ activeEvent: initialEvent, lang, initial
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-     if (isJoined) {
-        return FirebaseService.subscribeToGame((val) => {
+     if (isJoined && joinedEvent?.code) {
+        return FirebaseService.subscribeToGame(joinedEvent.code, (val) => {
            if (val) {
              setGameState((prev: any) => {
                 if (prev?.gameType !== val.gameType) {
