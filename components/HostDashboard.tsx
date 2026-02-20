@@ -121,49 +121,46 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    // 1. Обязательно ждем, пока activeEvent не появится
-    if (!activeEvent?.code) return; 
-    
-    // 2. Передаем activeEvent.code ПЕРВЫМ аргументом
-    const unsubScreen = FirebaseService.subscribeToScreenStatus(activeEvent.code, (ts) => {
-        if (ts && Date.now() - ts < 8000) {
-            setIsScreenConnected(true);
-        } else {
-            setIsScreenConnected(false);
-        }
+    const unsubscribe = FirebaseService.subscribeToAllEvents((data) => {
+      // Защита: auth?.currentUser?.uid спасет от вылета, если профиль еще не подгрузился
+      const validEvents = (data || []).filter((e: any) => 
+        e && e.id && e.ownerId === auth?.currentUser?.uid
+      );
+      setEvents(validEvents);
     });
-    return () => unsubScreen();
-  }, [activeEvent?.code]);
+    return () => unsubscribe();
+  }, []);
 
+  // 2. СОХРАНЕНИЕ ТЕКУЩЕГО СОБЫТИЯ
   useEffect(() => {
     if (activeEvent) {
        FirebaseService.saveEventToDB(activeEvent);
     }
   }, [activeEvent]); 
 
+  // 3. ЗАЩИЩЕННАЯ ПОДПИСКА НА СТАТУС ЭКРАНА
   useEffect(() => {
-    const unsubScreen = FirebaseService.subscribeToScreenStatus((ts) => {
-        if (ts && Date.now() - ts < 8000) {
-            setIsScreenConnected(true);
-        } else {
-            setIsScreenConnected(false);
-        }
+    // ВАЖНО: Если activeEvent еще не выбран, прерываем функцию, чтобы не было ошибки undefined
+    if (!activeEvent?.code) return; 
+
+    const unsubScreen = FirebaseService.subscribeToScreenStatus(activeEvent.code, (ts) => {
+        setIsScreenConnected(!!(ts && Date.now() - ts < 8000));
     });
     return () => unsubScreen();
-  }, []);
+  }, [activeEvent?.code]); // <-- Зависимость от кода
 
+// 4. БЕЗОПАСНОЕ СОХРАНЕНИЕ С ИДЕНТИФИКАТОРОМ ВЛАДЕЛЬЦА
   const handleSaveEvent = () => {
     if (editingEvent) {
       const updated = { ...editingEvent, ...formData } as LiveEvent;
       FirebaseService.saveEventToDB(updated);
-      
       if (activeEvent?.id === editingEvent.id) {
         setActiveEvent(updated);
       }
     } else {
       const event: LiveEvent = {
         id: Math.random().toString(36).substr(2, 9),
-        ownerId: auth.currentUser?.uid,
+        ownerId: auth?.currentUser?.uid, // <-- БЕЗОПАСНОЕ ПРИСВОЕНИЕ
         name: formData.name || 'Untitled',
         date: formData.date || new Date().toISOString().split('T')[0],
         code: formData.code || Math.random().toString(36).substr(2, 6).toUpperCase(),
@@ -188,20 +185,18 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
     setConfirmDeleteEventId(null);
   };
 
-  const handleToggleLive = () => {
-    if (!activeEvent) return;
+ const handleToggleLive = () => {
+    if (!activeEvent?.code) return; // Защита
     const isStopping = activeEvent.status === 'LIVE';
     const newStatus: 'UPCOMING' | 'LIVE' | 'COMPLETED' = isStopping ? 'COMPLETED' : 'LIVE';
     
     const updated: LiveEvent = { ...activeEvent, status: newStatus };
     setActiveEvent(updated);
     
-    // ДОБАВЛЯЕМ updated.code
-    FirebaseService.syncEvent(updated.code, updated); 
+    FirebaseService.syncEvent(updated.code, updated); // <--- ПЕРЕДАЕМ CODE
 
     if (isStopping) {
-      // ДОБАВЛЯЕМ updated.code
-      FirebaseService.syncGameState(updated.code, {
+      FirebaseService.syncGameState(updated.code, { // <--- ПЕРЕДАЕМ CODE
         isActive: false,
         isCollectingLeads: true,
         timestamp: Date.now()
