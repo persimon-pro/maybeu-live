@@ -12,7 +12,6 @@ export const generateQuizQuestions = async (
 ): Promise<QuizQuestion[]> => {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    // ИСПРАВЛЕНИЕ: Используем 100% рабочую классическую модель gemini-pro
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     
@@ -52,7 +51,7 @@ export const generateBelieveNotQuestions = async (
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // ИСПРАВЛЕНИЕ: Используем 100% рабочую классическую модель gemini-pro
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const langText = lang === 'ru' ? 'русском' : 'English';
     const options = lang === 'ru' ? ["Верю", "Не верю"] : ["Believe", "Don't Believe"];
     
