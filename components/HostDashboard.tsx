@@ -121,14 +121,12 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    const unsubscribe = FirebaseService.subscribeToAllEvents((data) => {
-     const validEvents = (data || []).filter((e: any) => 
-        e && e.id && e.ownerId === auth.currentUser?.uid
-      );
-      setEvents(validEvents);
+    if (!activeEvent?.code) return; // Проверяем, что ивент выбран
+    const unsubScreen = FirebaseService.subscribeToScreenStatus(activeEvent.code, (ts) => {
+        setIsScreenConnected(!!(ts && Date.now() - ts < 8000));
     });
-    return () => unsubscribe();
-  }, []);
+    return () => unsubScreen();
+  }, [activeEvent?.code]);
 
   useEffect(() => {
     if (activeEvent) {
@@ -191,10 +189,10 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
     const updated: LiveEvent = { ...activeEvent, status: newStatus };
     setActiveEvent(updated);
     
-    FirebaseService.syncEvent(updated);
-
-    if (isStopping) {
-      FirebaseService.syncGameState({
+  FirebaseService.syncEvent(updated.code, updated);
+    
+  if (isStopping) {
+      FirebaseService.syncGameState(updated.code, {
         isActive: false,
         isCollectingLeads: true,
         timestamp: Date.now()
