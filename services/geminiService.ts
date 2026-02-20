@@ -13,12 +13,13 @@ export const generateQuizQuestions = async (
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     
-    // Мы убрали responseSchema для стабильности и полагаемся на текстовый промпт
+    // ВАЖНО: Мы удалили responseSchema, чтобы API больше не выдавало ошибку 400
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
       contents: `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.
-      Return STRICTLY a JSON array of objects. Do not use markdown blocks like \`\`\`json. Just return the pure array.
-      Format: [{"id": "q1", "question": "Text?", "options": ["A", "B", "C", "D"], "correctAnswerIndex": 0}]`,
+      Return STRICTLY a valid JSON array of objects. Do not use markdown blocks like \`\`\`json. Just return the raw array.
+      Each object MUST have this exact structure:
+      {"id": "unique_string", "question": "question text", "options": ["opt1", "opt2", "opt3", "opt4"], "correctAnswerIndex": 0}`,
       config: {
         responseMimeType: "application/json",
       }
@@ -31,7 +32,7 @@ export const generateQuizQuestions = async (
     return JSON.parse(cleanText);
   } catch (e: any) {
     console.error("AI Quiz error", e);
-    // ВОТ ЭТО ОКНО ПОКАЖЕТ НАМ НАСТОЯЩУЮ ПРИЧИНУ ПОЛОМКИ
+    // ВАЖНО: Окно, которое покажет настоящую причину, если Google вас заблокирует
     alert("ОШИБКА НЕЙРОСЕТИ (КВИЗ):\n\n" + (e.message || "Неизвестная ошибка"));
     return getFallbackQuiz(topic, count);
   }
@@ -59,7 +60,7 @@ export const generateBelieveNotQuestions = async (
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
       contents: `Generate a list of ${count} interesting facts on the topic "${topic}" for a "Believe or Not" game. Some should be true, some should be false. 
-      Return STRICTLY a JSON array of objects. Do not use markdown blocks.
+      Return STRICTLY a valid JSON array of objects. Do not use markdown blocks.
       Format: [{"id": "bn1", "question": "Fact text?", "correctAnswerIndex": 0}] (0 for True, 1 for False). Language: ${langText}.`,
       config: {
         responseMimeType: "application/json",
@@ -79,7 +80,6 @@ export const generateBelieveNotQuestions = async (
     }));
   } catch (e: any) {
     console.error("AI Believe Not error", e);
-    // ВОТ ЭТО ОКНО ПОКАЖЕТ НАМ НАСТОЯЩУЮ ПРИЧИНУ ПОЛОМКИ
     alert("ОШИБКА НЕЙРОСЕТИ (ВЕРЮ/НЕ ВЕРЮ):\n\n" + (e.message || "Неизвестная ошибка"));
     return getFallbackBelieveNot(lang);
   }
