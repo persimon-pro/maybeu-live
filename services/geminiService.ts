@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { QuizQuestion, Language } from "../types";
 
-// Безопасно получаем ключ из скрытого файла .env
+// Vercel сам подставит сюда ключ из своих настроек!
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
 
 export const generateQuizQuestions = async (
