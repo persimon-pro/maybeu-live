@@ -196,9 +196,11 @@ const HostDashboard: React.FC<Props> = ({ activeEvent, setActiveEvent, lang }) =
     const updated: LiveEvent = { ...activeEvent, status: newStatus };
     setActiveEvent(updated);
     
-  FirebaseService.syncEvent(updated.code, updated);
-    
-  if (isStopping) {
+    // ДОБАВЛЯЕМ updated.code
+    FirebaseService.syncEvent(updated.code, updated); 
+
+    if (isStopping) {
+      // ДОБАВЛЯЕМ updated.code
       FirebaseService.syncGameState(updated.code, {
         isActive: false,
         isCollectingLeads: true,
