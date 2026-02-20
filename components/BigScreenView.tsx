@@ -1,129 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { LiveEvent, Language } from '../types';
 import { FirebaseService } from '../services/firebase';
-import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame, MonitorOff, Heart, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { LiveEvent, GameType, Language } from '../types';
+import { Trophy, Users, Zap, Medal, Maximize2, MonitorOff, Rocket, RotateCcw, Loader2 } from 'lucide-react';
 
-interface Props {
-  activeEvent: LiveEvent | null;
+interface Props { 
+  activeEvent: LiveEvent | null; 
   lang: Language;
 }
 
 const TRANSLATIONS = {
   ru: {
-    welcome: 'ДОБРО ПОЖАЛОВАТЬ',
-    joinOn: 'Заходи на',
-    online: 'В сети',
-    codeWaiting: 'КОД: ОЖИДАНИЕ',
-    quizTitle: 'ИНТЕЛЛЕКТУАЛЬНЫЙ КВИЗ',
-    believeTitle: 'ПРАВДА ИЛИ ЛОЖЬ',
-    shakeTitle: 'ИСПЫТАНИЕ ТРЯСКИ',
-    pushTitle: 'ГОНКА: ЖМИ БЫСТРЕЕ!',
-    artTitle: 'ИИ АРТ-БИТВА',
-    questTitle: 'МЕГА-КВЕСТ',
-    artThemeLabel: 'ТЕМА:',
-    questionLabel: 'Вопрос',
-    of: 'из',
-    guestsCreated: 'Создано гостями:',
-    sec: 'СЕК',
-    answers: 'ОТВЕТЫ',
-    shakeFaster: 'ТРЯСИ БЫСТРЕЕ!',
-    pushFaster: 'КЛИКАЙ КАК МОЛНИЯ!',
-    guest: 'Гость',
-    waitingArt: 'Ожидание шедевров...',
-    leader: 'Лидер раунда:',
-    engine: 'Maybeu Live Engine v3.5',
-    finish: 'ФИНИШ',
-    winner: 'ПОБЕДИТЕЛЬ!',
-    congrats: 'НЕВЕРОЯТНАЯ СКОРОСТЬ!',
-    standby: 'ОЖИДАНИЕ СТАРТА',
-    resultsTitle: 'ИТОГИ ИГРЫ',
-    questResultsTitle: 'ИТОГИ КВЕСТА',
-    score: 'баллов',
-    speed: 'скорость',
-    ms: 'сек',
-    correct: 'ПРАВИЛЬНО',
-    incorrect: 'НЕВЕРНО',
-    startRace: 'ПРИГОТОВИТЬСЯ К СТАРТУ!',
-    getReady: 'ПРИГОТОВЬТЕСЬ...',
-    countdown: 'ОТКРЫТИЕ ТРАССЫ ЧЕРЕЗ:',
-    fullscreen: 'На весь экран',
-    clear: 'Сброс',
-    wakeLockActive: 'Экран не погаснет',
-    questStage1Title: 'МАШИНА ВРЕМЕНИ',
-    questStage1Desc: 'На какой день недели придется {date} в 2099 году?',
-    questStage2Title: 'ФОТО-ОХОТА',
-    questStage2Desc: 'Сфоткай мужчину с интересной прической или бородой!',
-    questStage3Title: 'БЫСТРЫЙ СЧЕТ',
-    questStage3Desc: 'Реши уравнение: (250 х 4 х 5 х 2) + 2000 - 500 - 250 - 16 - 1500 + 1500 + 1234 - 50 - 50 - 23',
-    questStage4Title: 'МИЛЫЕ ЖИВОТНЫЕ',
-    questStage4Desc: 'Найди и пришли фото любого милого животного!',
-    photoReceived: 'ФОТО ПОЛУЧЕНО',
-    thanks: 'СПАСИБО ЗА ВНИМАНИЕ И ДО НОВЫХ ВСТРЕЧ!',
-    completed: 'ЭФИР ЗАВЕРШЕН'
+    welcome: 'ДОБРО ПОЖАЛОВАТЬ', joinOn: 'Заходи на', online: 'В сети', codeWaiting: 'КОД: ОЖИДАНИЕ',
+    quizTitle: 'ИНТЕЛЛЕКТУАЛЬНЫЙ КВИЗ', believeTitle: 'ПРАВДА ИЛИ ЛОЖЬ', shakeTitle: 'ИСПЫТАНИЕ ТРЯСКИ',
+    pushTitle: 'ГОНКА: ЖМИ БЫСТРЕЕ!', artTitle: 'ИИ АРТ-БИТВА', questTitle: 'МЕГА-КВЕСТ',
+    artThemeLabel: 'ТЕМА:', questionLabel: 'Вопрос', of: 'из', guestsCreated: 'Создано гостями:',
+    sec: 'СЕК', answers: 'ОТВЕТЫ', shakeFaster: 'ТРЯСИ БЫСТРЕЕ!', pushFaster: 'КЛИКАЙ КАК МОЛНИЯ!',
+    guest: 'Гость', waitingArt: 'Ожидание шедевров...', leader: 'Лидер раунда:', engine: 'Maybeu Live Engine v3.5',
+    finish: 'ФИНИШ', winner: 'ПОБЕДИТЕЛЬ!', congrats: 'НЕВЕРОЯТНАЯ СКОРОСТЬ!', standby: 'ОЖИДАНИЕ СТАРТА',
+    resultsTitle: 'ИТОГИ ИГРЫ', questResultsTitle: 'ИТОГИ КВЕСТА', score: 'баллов', speed: 'скорость',
+    ms: 'сек', correct: 'ПРАВИЛЬНО', incorrect: 'НЕВЕРНО', startRace: 'ПРИГОТОВИТЬСЯ К СТАРТУ!',
+    getReady: 'ПРИГОТОВЬТЕСЬ...', countdown: 'ОТКРЫТИЕ ТРАССЫ ЧЕРЕЗ:', fullscreen: 'На весь экран',
+    clear: 'Сброс', questStage1Title: 'МАШИНА ВРЕМЕНИ', questStage1Desc: 'На какой день недели придется {date} в 2099 году?',
+    questStage2Title: 'ФОТО-ОХОТА', questStage2Desc: 'Сфоткай мужчину с интересной прической или бородой!',
+    questStage3Title: 'БЫСТРЫЙ СЧЕТ', questStage3Desc: 'Реши уравнение: (250 х 4 х 5 х 2) + 2000 - 500 - 250 - 16 - 1500 + 1500 + 1234 - 50 - 50 - 23',
+    questStage4Title: 'МИЛЫЕ ЖИВОТНЫЕ', questStage4Desc: 'Найди и пришли фото любого милого животного!',
+    photoReceived: 'ФОТО ПОЛУЧЕНО', thanks: 'СПАСИБО ЗА ВНИМАНИЕ И ДО НОВЫХ ВСТРЕЧ!', completed: 'ЭФИР ЗАВЕРШЕН'
   },
   en: {
-    welcome: 'WELCOME',
-    joinOn: 'Join on',
-    online: 'Online',
-    codeWaiting: 'CODE: WAITING',
-    quizTitle: 'INTELLECTUAL QUIZ',
-    believeTitle: 'TRUE OR FALSE',
-    shakeTitle: 'SHAKE CHALLENGE',
-    pushTitle: 'RACE: PUSH IT FAST!',
-    artTitle: 'AI ART BATTLE',
-    questTitle: 'MEGA QUEST',
-    artThemeLabel: 'THEME:',
-    questionLabel: 'Question',
-    of: 'of',
-    guestsCreated: 'Created by guests:',
-    sec: 'SEC',
-    answers: 'ANSWERS',
-    shakeFaster: 'SHAKE FASTER!',
-    pushFaster: 'CLICK LIKE LIGHTNING!',
-    guest: 'Guest',
-    waitingArt: 'Waiting for masterpieces...',
-    leader: 'Round Leader:',
-    engine: 'Maybeu Live Engine v3.5',
-    finish: 'ФИНИШ',
-    winner: 'WINNER!',
-    congrats: 'INCREDIBLE SPEED!',
-    standby: 'WAITING FOR START',
-    resultsTitle: 'GAME RESULTS',
-    questResultsTitle: 'QUEST RESULTS',
-    score: 'pts',
-    speed: 'speed',
-    ms: 's',
-    correct: 'CORRECT',
-    incorrect: 'WRONG',
-    startRace: 'GET READY TO RACE!',
-    getReady: 'GET READY...',
-    countdown: 'TRACK OPENS IN:',
-    fullscreen: 'Fullscreen',
-    clear: 'Reset',
-    wakeLockActive: 'Wake lock active',
-    questStage1Title: 'TIME MACHINE',
-    questStage1Desc: 'What day of week is {date} in the year 2099?',
-    questStage2Title: 'PHOTO HUNT',
-    questStage2Desc: 'Capture a man with an interesting hairstyle or beard!',
-    questStage3Title: 'FAST CALC',
-    questStage3Desc: 'Solve: (250 x 4 x 5 x 2) + 2000 - 500 - 250 - 16 - 1500 + 1500 + 1234 - 50 - 50 - 23',
-    questStage4Title: 'CUTE ANIMALS',
-    questStage4Desc: 'Find and send a photo of any cute animal!',
-    photoReceived: 'PHOTO RECEIVED',
-    thanks: 'THANK YOU FOR WATCHING AND SEE YOU SOON!',
-    completed: 'EVENT COMPLETED'
+    welcome: 'WELCOME', joinOn: 'Join on', online: 'Online', codeWaiting: 'CODE: WAITING',
+    quizTitle: 'INTELLECTUAL QUIZ', believeTitle: 'TRUE OR FALSE', shakeTitle: 'SHAKE CHALLENGE',
+    pushTitle: 'RACE: PUSH IT FAST!', artTitle: 'AI ART BATTLE', questTitle: 'MEGA QUEST',
+    artThemeLabel: 'THEME:', questionLabel: 'Question', of: 'of', guestsCreated: 'Created by guests:',
+    sec: 'SEC', answers: 'ANSWERS', shakeFaster: 'SHAKE FASTER!', pushFaster: 'CLICK LIKE LIGHTNING!',
+    guest: 'Guest', waitingArt: 'Waiting for masterpieces...', leader: 'Round Leader:', engine: 'Maybeu Live Engine v3.5',
+    finish: 'FINISH', winner: 'WINNER!', congrats: 'INCREDIBLE SPEED!', standby: 'WAITING FOR START',
+    resultsTitle: 'GAME RESULTS', questResultsTitle: 'QUEST RESULTS', score: 'pts', speed: 'speed',
+    ms: 's', correct: 'CORRECT', incorrect: 'WRONG', startRace: 'GET READY TO RACE!',
+    getReady: 'GET READY...', countdown: 'TRACK OPENS IN:', fullscreen: 'Fullscreen',
+    clear: 'Reset', questStage1Title: 'TIME MACHINE', questStage1Desc: 'What day of week is {date} in the year 2099?',
+    questStage2Title: 'PHOTO HUNT', questStage2Desc: 'Capture a man with an interesting hairstyle or beard!',
+    questStage3Title: 'FAST CALC', questStage3Desc: 'Solve: (250 x 4 x 5 x 2) + 2000 - 500 - 250 - 16 - 1500 + 1500 + 1234 - 50 - 50 - 23',
+    questStage4Title: 'CUTE ANIMALS', questStage4Desc: 'Find and send a photo of any cute animal!',
+    photoReceived: 'PHOTO RECEIVED', thanks: 'THANK YOU FOR WATCHING AND SEE YOU SOON!', completed: 'EVENT COMPLETED'
   }
 };
 
 const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
-  // 1. СОСТОЯНИЯ ДЛЯ КОДА И КОМНАТЫ
   const [screenCode, setScreenCode] = useState(initialEvent?.code || '');
   const [isCodeEntered, setIsCodeEntered] = useState(!!initialEvent?.code);
   
-// 2. ДАННЫЕ ИЗ БАЗЫ
-  const [activeEvent, setActiveEvent] = useState<LiveEvent | null>(initialEvent);
   const [gameState, setGameState] = useState<any>(null);
-  
+  const [activeEvent, setActiveEvent] = useState<LiveEvent | null>(initialEvent);
   const [onlineCount, setOnlineCount] = useState(0);
   const [gameFinished, setGameFinished] = useState(false);
   const [sessionData, setSessionData] = useState<any>({});
@@ -131,30 +58,15 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
   const containerRef = useRef<HTMLDivElement>(null);
   const t = TRANSLATIONS[lang];
 
-// 3. ПОДКЛЮЧЕНИЕ К КОМНАТЕ
   useEffect(() => {
     if (!isCodeEntered || !screenCode) return;
-
-    // Слушаем само мероприятие (чтобы знать, LIVE оно или нет)
-    const unsubEvent = FirebaseService.subscribeToEvent(screenCode, (evt) => {
+    const unsub = FirebaseService.subscribeToEvent(screenCode, (evt) => {
       setActiveEvent(evt);
     });
-
-    // Слушаем состояние текущей игры
-    const unsubGame = FirebaseService.subscribeToGame(screenCode, (gs) => {
-      setGameState(gs);
-    });
-
-    // Пульс для дашборда ведущего ("Экран в сети")
     const pulse = setInterval(() => {
       FirebaseService.sendScreenHeartbeat(screenCode);
     }, 2000);
-
-    return () => {
-      unsubEvent();
-      unsubGame();
-      clearInterval(pulse);
-    };
+    return () => { unsub(); clearInterval(pulse); };
   }, [isCodeEntered, screenCode]);
 
   useEffect(() => {
@@ -174,22 +86,22 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       });
     });
     return unsubGame;
-  }, []);
+  }, [isCodeEntered, screenCode]);
 
   useEffect(() => {
     if (activeEvent?.code) {
       const unsub = FirebaseService.subscribeToSessionData(activeEvent.code, (data) => {
          setSessionData(data || {});
-         if (data.registry) {
+         if (data?.registry) {
            setOnlineCount(Object.keys(data.registry).length);
          }
          
-         if (gameState?.gameType === GameType.PUSH_IT && data.race && !gameFinished && gameState?.isActive && !gameState?.isCountdown) {
+         if (gameState?.gameType === GameType.PUSH_IT && data?.race && !gameFinished && gameState?.isActive && !gameState?.isCountdown) {
             const winnerEntry = Object.entries(data.race).find(([_, count]) => Number(count) >= 50);
             if (winnerEntry) setGameFinished(true);
          }
 
-         if (gameState?.gameType === GameType.SHAKE_IT && data.shake && !gameFinished && gameState?.isActive) {
+         if (gameState?.gameType === GameType.SHAKE_IT && data?.shake && !gameFinished && gameState?.isActive) {
             const winnerEntry = Object.entries(data.shake).find(([_, count]) => Number(count) >= 150);
             if (winnerEntry) setGameFinished(true);
          }
@@ -206,7 +118,7 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
   };
 
   const quizLeaders = useMemo(() => {
-    if (!activeEvent || !gameState?.questions || !sessionData.quiz_answers) return [];
+    if (!activeEvent || !gameState?.questions || !sessionData?.quiz_answers) return [];
     const scores: Record<string, number> = {};
 
     Object.entries(sessionData.quiz_answers).forEach(([guestName, guestAnswers]: [string, any]) => {
@@ -224,10 +136,10 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .map(([name, score]) => ({ name, score }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [gameFinished, sessionData.quiz_answers, gameState?.questions]);
+  }, [gameFinished, sessionData?.quiz_answers, gameState?.questions]);
 
   const questResults = useMemo(() => {
-    if (!activeEvent || !sessionData.quest_responses) return [];
+    if (!activeEvent || !sessionData?.quest_responses) return [];
     const participants: Record<string, { score: number }> = {};
     const now = new Date();
     const correctDay2099 = new Date(2099, now.getMonth(), now.getDate()).getDay();
@@ -254,31 +166,31 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
       .map(([name, data]) => ({ name, score: data.score }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [gameFinished, sessionData.quest_responses]);
+  }, [gameFinished, sessionData?.quest_responses]);
 
   const pushResults = useMemo(() => {
-    if (!sessionData.race) return [];
+    if (!sessionData?.race) return [];
     return Object.entries(sessionData.race)
       .map(([name, count]) => ({ name, score: Number(count) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [sessionData.race]);
+  }, [sessionData?.race]);
 
   const shakeResults = useMemo(() => {
-    if (!sessionData.shake) return [];
+    if (!sessionData?.shake) return [];
     return Object.entries(sessionData.shake)
       .map(([name, count]) => ({ name, score: Number(count) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
-  }, [sessionData.shake]);
+  }, [sessionData?.shake]);
 
   const getGuestImages = () => {
-     if (!sessionData.images) return [];
+     if (!sessionData?.images) return [];
      return Object.values(sessionData.images);
   };
   
   const getQuestResponses = () => {
-     if (!sessionData.quest_responses || !gameState) return [];
+     if (!sessionData?.quest_responses || !gameState) return [];
      const responses = sessionData.quest_responses[gameState.questStage] || {};
      return Object.values(responses);
   };
@@ -294,7 +206,8 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     }
   };
 
- if (!isCodeEntered) {
+  // 1. ЕСЛИ КОД НЕ ВВЕДЕН - ПОКАЗЫВАЕМ ФОРМУ
+  if (!isCodeEntered) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center">
          <h1 className="text-4xl font-black text-white mb-8">ПОДКЛЮЧЕНИЕ ЭКРАНА</h1>
@@ -302,12 +215,12 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
            value={screenCode} 
            onChange={e => setScreenCode(e.target.value.toUpperCase())} 
            placeholder="ВВЕДИТЕ КОД (например, LOVE24)" 
-           className="bg-slate-900 border-2 border-slate-700 text-white text-3xl font-mono text-center p-6 rounded-2xl mb-6 outline-none focus:border-indigo-500 uppercase"
+           className="bg-slate-900 border-2 border-slate-700 text-white text-3xl font-mono text-center p-6 rounded-2xl mb-6 outline-none focus:border-indigo-500 uppercase shadow-xl"
          />
          <button 
            onClick={() => setIsCodeEntered(true)} 
-           disabled={!screenCode} 
-           className="bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-black px-12 py-6 rounded-2xl disabled:opacity-50 transition-all"
+           disabled={!screenCode || screenCode.length < 3} 
+           className="bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-black px-12 py-6 rounded-2xl disabled:opacity-50 transition-all shadow-lg shadow-indigo-500/30"
          >
            ПОДКЛЮЧИТЬ ЭКРАН
          </button>
@@ -315,63 +228,52 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     );
   }
 
-if (!isCodeEntered) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center">
-         <h1 className="text-4xl font-black text-white mb-8">ПОДКЛЮЧЕНИЕ ЭКРАНА</h1>
-         <input 
-           value={screenCode} 
-           onChange={e => setScreenCode(e.target.value.toUpperCase())} 
-           placeholder="ВВЕДИТЕ КОД (например, LOVE24)" 
-           className="bg-slate-900 border-2 border-slate-700 text-white text-3xl font-mono text-center p-6 rounded-2xl mb-6 outline-none focus:border-indigo-500 uppercase"
-         />
-         <button 
-           onClick={() => setIsCodeEntered(true)} 
-           disabled={!screenCode} 
-           className="bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-black px-12 py-6 rounded-2xl disabled:opacity-50 transition-all"
-         >
-           ПОДКЛЮЧИТЬ ЭКРАН
-         </button>
-      </div>
-    );
-  }
-
-  // ========================================================
-  // 🛑 НОВАЯ ЗАЩИТА ОТ БЕЛОГО ЭКРАНА 🛑
-  // Если код введен, но данные еще грузятся или код неверный
+  // 2. 🛑 ЖЕЛЕЗОБЕТОННАЯ ЗАЩИТА ОТ КРАША 🛑
+  // Если код введен, но Firebase еще не ответил
   if (!activeEvent) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-20 text-center">
-         <Loader2 className="w-16 h-16 text-indigo-500 animate-spin mx-auto mb-8" />
-         <h2 className="text-2xl font-black text-slate-500 uppercase tracking-widest">ОЖИДАНИЕ ДАННЫХ...</h2>
-         <p className="mt-4 text-slate-600">Код: {screenCode}</p>
+         <Loader2 size={64} className="text-indigo-500 animate-spin mb-8 mx-auto" />
+         <h2 className="text-2xl font-black text-slate-500 uppercase tracking-widest">ПОИСК МЕРОПРИЯТИЯ...</h2>
+         <p className="mt-4 text-slate-600 font-mono text-xl">КОД: {screenCode}</p>
          <button 
            onClick={() => {
              setIsCodeEntered(false);
              setScreenCode('');
            }} 
-           className="mt-8 px-6 py-2 border border-slate-700 text-slate-400 rounded-xl hover:bg-slate-800 transition-colors uppercase text-xs font-bold"
+           className="mt-12 px-6 py-3 bg-slate-900 border border-slate-700 text-slate-400 rounded-xl hover:bg-slate-800 transition-colors uppercase font-bold text-sm"
          >
            Ввести другой код
          </button>
       </div>
     );
   }
-  
- // 5. ЭКРАН ОЖИДАНИЯ (ЖДЕМ, ПОКА ВЕДУЩИЙ НАЖМЕТ "ВЫЙТИ В ЭФИР")
-  if (!activeEvent || activeEvent.status !== 'LIVE') {
+
+  // 3. ЕСЛИ ИГРА ЗАВЕРШЕНА
+  if (activeEvent.status === 'COMPLETED') {
     return (
-      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-slate-950">
-         <div className="w-20 h-20 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-8"></div>
-         <h2 className="text-5xl font-black text-slate-700 tracking-widest uppercase">ОЖИДАНИЕ ЗАПУСКА</h2>
-         <p className="text-slate-600 mt-6 text-2xl font-mono tracking-widest bg-slate-900 px-6 py-2 rounded-xl">
-           КОД: {screenCode}
-         </p>
+      <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-[5vmin] text-center relative overflow-hidden animate-in fade-in duration-1000">
+         <div className="absolute top-6 right-6 flex gap-2 z-50">
+           <button onClick={toggleFullscreen} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500"><Maximize2 size={24} /></button>
+         </div>
+         
+         <div className="relative z-10 max-w-5xl space-y-[5vmin]">
+            <div className="w-32 h-2 bg-emerald-500 mx-auto rounded-full animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div>
+            <h1 className="text-[7vmin] font-black text-white uppercase italic tracking-tighter leading-tight drop-shadow-2xl">
+              {t.thanks}
+            </h1>
+            <p className="text-[3vmin] font-bold text-slate-500 uppercase tracking-[0.5em]">{t.completed}</p>
+         </div>
+         
+         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/30 rounded-full blur-[100px] animate-pulse" style={{animationDelay: '1s'}}></div>
+         </div>
       </div>
     );
   }
 
-  // Lobby view before game starts
+  // 4. ЭКРАН ОЖИДАНИЯ СТАРТА
   if (!gameState || (!gameState.isActive && !gameFinished)) {
     return (
       <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-[5vmin] text-center relative overflow-hidden">
@@ -404,7 +306,6 @@ if (!isCodeEntered) {
     );
   }
 
-  // --- ЗАЩИТА ОТ КРАША ---
   const currentQuestion = gameState.questions ? gameState.questions[gameState.currentIdx] : null;
 
   return (
