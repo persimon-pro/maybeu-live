@@ -1,6 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { QuizQuestion, Language } from "../types";
 
+// Ваш ключ
 const GEMINI_API_KEY = "AIzaSyArOLbY23EpDcvCJsUkaH9MOUnu7KosVF4"; 
 
 export const generateQuizQuestions = async (
@@ -10,29 +11,25 @@ export const generateQuizQuestions = async (
   mood: string = "fun"
 ): Promise<QuizQuestion[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    // Используем правильную браузерную библиотеку
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const langText = lang === 'ru' ? 'русский' : 'английский';
     
-    // ВАЖНО: Мы удалили responseSchema, чтобы API больше не выдавало ошибку 400
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.
-      Return STRICTLY a valid JSON array of objects. Do not use markdown blocks like \`\`\`json. Just return the raw array.
-      Each object MUST have this exact structure:
-      {"id": "unique_string", "question": "question text", "options": ["opt1", "opt2", "opt3", "opt4"], "correctAnswerIndex": 0}`,
-      config: {
-        responseMimeType: "application/json",
-      }
-    });
+    const prompt = `Generate a list of ${count} ${mood} quiz questions on the topic "${topic}" for a live event. For each question, provide 4 options. Language: ${langText}.
+    Return STRICTLY a valid JSON array of objects. Do not use markdown blocks like \`\`\`json. Just return the raw array.
+    Each object MUST have this exact structure:
+    {"id": "unique_string", "question": "question text", "options": ["opt1", "opt2", "opt3", "opt4"], "correctAnswerIndex": 0}`;
+
+    const result = await model.generateContent(prompt);
+    let text = result.response.text();
     
-    let text = response.text;
     if (!text) throw new Error("Пустой ответ от сервера Google");
     
     const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
     return JSON.parse(cleanText);
   } catch (e: any) {
     console.error("AI Quiz error", e);
-    // ВАЖНО: Окно, которое покажет настоящую причину, если Google вас заблокирует
     alert("ОШИБКА НЕЙРОСЕТИ (КВИЗ):\n\n" + (e.message || "Неизвестная ошибка"));
     return getFallbackQuiz(topic, count);
   }
@@ -53,21 +50,18 @@ export const generateBelieveNotQuestions = async (
   count: number = 5
 ): Promise<QuizQuestion[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const langText = lang === 'ru' ? 'русском' : 'English';
     const options = lang === 'ru' ? ["Верю", "Не верю"] : ["Believe", "Don't Believe"];
     
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: `Generate a list of ${count} interesting facts on the topic "${topic}" for a "Believe or Not" game. Some should be true, some should be false. 
-      Return STRICTLY a valid JSON array of objects. Do not use markdown blocks.
-      Format: [{"id": "bn1", "question": "Fact text?", "correctAnswerIndex": 0}] (0 for True, 1 for False). Language: ${langText}.`,
-      config: {
-        responseMimeType: "application/json",
-      }
-    });
+    const prompt = `Generate a list of ${count} interesting facts on the topic "${topic}" for a "Believe or Not" game. Some should be true, some should be false. 
+    Return STRICTLY a JSON array of objects. Do not use markdown blocks.
+    Format: [{"id": "bn1", "question": "Fact text?", "correctAnswerIndex": 0}] (0 for True, 1 for False). Language: ${langText}.`;
+
+    const result = await model.generateContent(prompt);
+    let text = result.response.text();
     
-    let text = response.text;
     if (!text) throw new Error("Пустой ответ от сервера Google");
     
     const cleanText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
@@ -97,13 +91,13 @@ const getFallbackBelieveNot = (lang: Language): QuizQuestion[] => {
 
 export const generateGuestGreeting = async (guestName: string, occasion: string, eventType: string, lang: Language): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const langText = lang === 'ru' ? 'русский' : 'English';
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: `Write a warm, professional yet festive personalized message for a guest named ${guestName} for the occasion of ${occasion}. Mention our previous collaboration at a "${eventType}" event. Keep it short for WhatsApp/Telegram. Language: ${langText}.`,
-    });
-    return response.text?.trim() || `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
+    const prompt = `Write a warm, professional yet festive personalized message for a guest named ${guestName} for the occasion of ${occasion}. Mention our previous collaboration at a "${eventType}" event. Keep it short for WhatsApp/Telegram. Language: ${langText}.`;
+    
+    const result = await model.generateContent(prompt);
+    return result.response.text()?.trim() || `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
   } catch (e) {
     return `Привет, ${guestName}! Рады видеть тебя на нашем событии!`;
   }
