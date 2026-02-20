@@ -1,10 +1,10 @@
+import React, { useState, useEffect } from 'react';
+import { LiveEvent, Language } from '../types';
 import { FirebaseService } from '../services/firebase';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { LiveEvent, GameType, Language, QuizQuestion } from '../types';
 import { Trophy, Timer, Users, Zap, ImageIcon, MousePointer2, Medal, Star, Clock, HelpCircle, CheckCircle2, XCircle, Flag, Loader2, Maximize2, Calculator, Camera, Upload, Check, Rocket, Flame, MonitorOff, Heart, RotateCcw } from 'lucide-react';
 
-interface Props { 
-  activeEvent: LiveEvent | null; 
+interface Props {
+  activeEvent: LiveEvent | null;
   lang: Language;
 }
 
@@ -116,11 +116,14 @@ const TRANSLATIONS = {
 };
 
 const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => {
+  // 1. СОСТОЯНИЯ ДЛЯ КОДА И КОМНАТЫ
   const [screenCode, setScreenCode] = useState(initialEvent?.code || '');
   const [isCodeEntered, setIsCodeEntered] = useState(!!initialEvent?.code);
   
-  const [gameState, setGameState] = useState<any>(null);
+// 2. ДАННЫЕ ИЗ БАЗЫ
   const [activeEvent, setActiveEvent] = useState<LiveEvent | null>(initialEvent);
+  const [gameState, setGameState] = useState<any>(null);
+  
   const [onlineCount, setOnlineCount] = useState(0);
   const [gameFinished, setGameFinished] = useState(false);
   const [sessionData, setSessionData] = useState<any>({});
@@ -128,15 +131,30 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
   const containerRef = useRef<HTMLDivElement>(null);
   const t = TRANSLATIONS[lang];
 
+// 3. ПОДКЛЮЧЕНИЕ К КОМНАТЕ
   useEffect(() => {
     if (!isCodeEntered || !screenCode) return;
-    const unsub = FirebaseService.subscribeToEvent(screenCode, (evt) => {
+
+    // Слушаем само мероприятие (чтобы знать, LIVE оно или нет)
+    const unsubEvent = FirebaseService.subscribeToEvent(screenCode, (evt) => {
       setActiveEvent(evt);
     });
+
+    // Слушаем состояние текущей игры
+    const unsubGame = FirebaseService.subscribeToGame(screenCode, (gs) => {
+      setGameState(gs);
+    });
+
+    // Пульс для дашборда ведущего ("Экран в сети")
     const pulse = setInterval(() => {
       FirebaseService.sendScreenHeartbeat(screenCode);
     }, 2000);
-    return () => { unsub(); clearInterval(pulse); };
+
+    return () => {
+      unsubEvent();
+      unsubGame();
+      clearInterval(pulse);
+    };
   }, [isCodeEntered, screenCode]);
 
   useEffect(() => {
@@ -297,25 +315,15 @@ const BigScreenView: React.FC<Props> = ({ activeEvent: initialEvent, lang }) => 
     );
   }
 
-  if (activeEvent.status === 'COMPLETED') {
+ // 5. ЭКРАН ОЖИДАНИЯ (ЖДЕМ, ПОКА ВЕДУЩИЙ НАЖМЕТ "ВЫЙТИ В ЭФИР")
+  if (!activeEvent || activeEvent.status !== 'LIVE') {
     return (
-      <div ref={containerRef} className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-[5vmin] text-center relative overflow-hidden animate-in fade-in duration-1000">
-         <div className="absolute top-6 right-6 flex gap-2 z-50">
-           <button onClick={toggleFullscreen} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-500"><Maximize2 size={24} /></button>
-         </div>
-         
-         <div className="relative z-10 max-w-5xl space-y-[5vmin]">
-            <div className="w-32 h-2 bg-emerald-500 mx-auto rounded-full animate-pulse shadow-[0_0_20px_rgba(16,185,129,0.5)]"></div>
-            <h1 className="text-[7vmin] font-black text-white uppercase italic tracking-tighter leading-tight drop-shadow-2xl">
-              {t.thanks}
-            </h1>
-            <p className="text-[3vmin] font-bold text-slate-500 uppercase tracking-[0.5em]">{t.completed}</p>
-         </div>
-         
-         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-600/30 rounded-full blur-[100px] animate-pulse" style={{animationDelay: '1s'}}></div>
-         </div>
+      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-slate-950">
+         <div className="w-20 h-20 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-8"></div>
+         <h2 className="text-5xl font-black text-slate-700 tracking-widest uppercase">ОЖИДАНИЕ ЗАПУСКА</h2>
+         <p className="text-slate-600 mt-6 text-2xl font-mono tracking-widest bg-slate-900 px-6 py-2 rounded-xl">
+           КОД: {screenCode}
+         </p>
       </div>
     );
   }
